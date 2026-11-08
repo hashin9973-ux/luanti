@@ -15,7 +15,7 @@ jobs:
       - name: Download and verify portable build
         shell: bash
         env:
-          ASSET_URL: "https://raw.githubusercontent.com/hashin9973-ux/Bridge/main/artifacts/9e1f2e63-29b7-4d6a-ae18-fb4f02c50ed4/command-001-source-01-Parallax-PBR-Luanti-5.19.0-dev-win64-verified.zip?token=B6W3NDIZGMYEMLILQND77QDK6DRXTAA"
+          ASSET_URL: "https://raw.githubusercontent.com/hashin9973-ux/Bridge/main/artifacts/9e1f2e63-29b7-4d6a-ae18-fb4f02c50ed4/command-001-source-01-Parallax-PBR-Luanti-5.19.0-dev-win64-verified.zip?token=B6W3NDL6TSNK77I7FCDBER3K6DSCXAA"
           EXPECTED_SHA256: "80e4a30fb15af996ecc67d9d6cdeae4a3a074049178ccb5799c250cce83da2a8"
           EXPECTED_SIZE: "18948859"
         run: |
