@@ -1,0 +1,69 @@
+name: Publish Windows PBR preview
+
+on:
+  push:
+    branches:
+      - release/pbr-preview-20261108
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download and verify portable build
+        shell: bash
+        env:
+          ASSET_URL: "https://raw.githubusercontent.com/hashin9973-ux/Bridge/main/artifacts/9e1f2e63-29b7-4d6a-ae18-fb4f02c50ed4/command-001-source-01-Parallax-PBR-Luanti-5.19.0-dev-win64-verified.zip?token=B6W3NDIZGMYEMLILQND77QDK6DRXTAA"
+          EXPECTED_SHA256: "80e4a30fb15af996ecc67d9d6cdeae4a3a074049178ccb5799c250cce83da2a8"
+          EXPECTED_SIZE: "18948859"
+        run: |
+          set -euo pipefail
+          asset="Parallax-PBR-Luanti-5.19.0-dev-win64.zip"
+          curl --fail --location --show-error --retry 3 --retry-delay 2 --retry-all-errors "$ASSET_URL" --output "$asset"
+          actual_size="$(stat -c '%s' "$asset")"
+          test "$actual_size" = "$EXPECTED_SIZE"
+          printf '%s  %s\n' "$EXPECTED_SHA256" "$asset" | sha256sum --check --strict
+          echo "Verified $asset ($actual_size bytes)"
+
+      - name: Create public prerelease
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: "pbr-preview-2026.11.08"
+          TARGET_COMMIT: "b4c73357a6159e48810dea24428f3ebaa24dd345"
+          ASSET: "Parallax-PBR-Luanti-5.19.0-dev-win64.zip"
+        run: |
+          set -euo pipefail
+          cat > release-notes.md <<'EOF'
+          ## Luanti PBR Preview — Windows x64 Portable
+
+          A custom Windows x64 portable preview build based on Luanti 5.19.0-dev (b4c7335) with local PBR renderer changes.
+
+          ### Included
+          - Tangent-space normal mapping.
+          - Ambient occlusion and roughness-driven specular lighting.
+          - Emission support.
+          - Devtest /pbr_showcase mod with 147 PBR material samples and their base, normal, and specular maps.
+          - Optional Parallax_PBR_64x_Luanti texture pack for 11 existing Devtest textures.
+
+          ### Verification
+          - Release configuration compiled successfully with MSVC.
+          - Built-in tests: 352/352 passed; 163,744 assertions.
+          - Package inventory and SHA-256 checks passed.
+
+          ### Known limitations
+          - This is a custom preview build, not an official Luanti release.
+          - PBR support currently targets ordinary static terrain nodes.
+          - Height/parallax mapping is not implemented.
+          - GPU shader compilation and in-game visual output have not yet been verified on a user's graphics driver.
+
+          The binary was built from a local working tree based on commit b4c7335; the local renderer modifications are not represented by this release tag's source tree. Treat this as a binary test build, not a reproducible source release.
+          EOF
+          gh release create "$TAG" "$ASSET" \
+            --repo "$GITHUB_REPOSITORY" \
+            --title "Luanti PBR Preview — Windows x64 Portable" \
+            --notes-file release-notes.md \
+            --prerelease \
+            --target "$TARGET_COMMIT"
