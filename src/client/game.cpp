@@ -77,6 +77,7 @@ class GameGlobalShaderUniformSetter : public IShaderUniformSetter
 	int m_crack_texture_scale_i = 0;
 	CachedPixelShaderSetting<float> m_crack_texture_scale{"crackTextureScale"};
 	CachedPixelShaderSetting<float, 3> m_day_light{"dayLight"};
+	CachedPixelShaderSetting<float, 3> m_pbr_light_direction{"pbrLightDirection"};
 	CachedPixelShaderSetting<float, 3> m_minimap_yaw{"yawVec"};
 	CachedPixelShaderSetting<float, 3> m_camera_offset_pixel{"cameraOffset"};
 	CachedVertexShaderSetting<float, 3> m_camera_offset_vertex{"cameraOffset"};
@@ -151,6 +152,24 @@ public:
 		video::SColorf sunlight;
 		get_sunlight_color(&sunlight, daynight_ratio);
 		m_day_light.set(sunlight, services);
+
+		// PBR direct-light direction follows the same sky/custom direction used
+		// by the shadow renderer, but remains available when shadow maps are off.
+		v3f pbr_light_direction(0.0f, 1.0f, 0.0f);
+		if (m_sky) {
+			auto *player = m_client->getEnv().getLocalPlayer();
+			if (player && player->getLighting().shadow_direction.getLengthSQ() > 0.0f) {
+				pbr_light_direction = player->getLighting().shadow_direction;
+			} else {
+				float time_of_day = getWickedTimeOfDay(m_client->getEnv().getTimeOfDayF());
+				bool is_day = time_of_day > 0.25f && time_of_day < 0.75f;
+				pbr_light_direction = is_day ?
+						m_sky->getSunDirection() : m_sky->getMoonDirection();
+			}
+		}
+		if (pbr_light_direction.getLengthSQ() > 0.0f)
+			pbr_light_direction.normalize();
+		m_pbr_light_direction.set(pbr_light_direction, services);
 
 		u32 animation_timer = m_client->getEnv().getFrameTime() % 1000000;
 		float animation_timer_f = (float)animation_timer / 100000.f;
