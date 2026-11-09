@@ -49,7 +49,7 @@ constexpr bool isConductor(std::uint8_t f0_channel)
 
 inline float decodeDielectricF0(std::uint8_t f0_channel)
 {
-	return std::min(static_cast<float>(f0_channel) / 255.0f, 229.0f / 255.0f);
+	return std::clamp(static_cast<float>(f0_channel) / 255.0f, 0.02f, 0.9f);
 }
 
 inline float decodeRoughness(std::uint8_t smoothness_channel)
