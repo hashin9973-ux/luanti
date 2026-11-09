@@ -1,0 +1,37 @@
+name: PBR asset audit
+
+on:
+  push:
+    branches:
+      - feature/engine-pbr-pom
+    paths:
+      - 'Parallax PBR 64x v2.5.zip'
+      - 'util/pbr/**'
+      - '.github/workflows/pbr-asset-audit.yml'
+  pull_request:
+    paths:
+      - 'Parallax PBR 64x v2.5.zip'
+      - 'util/pbr/**'
+      - '.github/workflows/pbr-asset-audit.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  inspect-asset-archive:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - name: Inventory archive and Devtest texture names
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash util/pbr/inspect_assets.sh
+      - name: Upload source inventory
+        uses: actions/upload-artifact@v7
+        with:
+          name: pbr-asset-inventory
+          path: build/pbr-audit/
+          if-no-files-found: error
+          retention-days: 30
