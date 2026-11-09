@@ -82,7 +82,9 @@ cut -f2 "$result" | awk 'NF { print }' | LC_ALL=C sort | uniq -c |
   echo "Duplicate source assignments (some may be intentional overlays/liquids):"
   cat "$out/duplicate-source-mappings.tsv"
   echo
-  echo "Full TSV: $result"
+  echo
+  echo "Complete mapping validation TSV:"
+  cat "$result"
 } > "$out/report.txt"
 
 cat "$out/report.txt"
