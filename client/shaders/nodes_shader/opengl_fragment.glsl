@@ -736,7 +736,7 @@ void main(void)
 	float roughness = max(pow(1.0 - perceptual_smoothness, 2.0), 0.045);
 	// LabPBR G stores dielectric F0 directly (0..229 / 255); 230..255
 	// denotes a conductor. Use albedo as the conductor F0 fallback.
-	float f0_value = clamp(pbr_specular_sample.g, 0.02, 0.9);
+	float f0_value = min(pbr_specular_sample.g, 229.0 / 255.0);
 	float is_metal = step(230.0 / 255.0, pbr_specular_sample.g);
 	vec3 f0 = mix(vec3(f0_value), base.rgb, is_metal);
 	// Conductors have no diffuse base component; their albedo tints reflection.
