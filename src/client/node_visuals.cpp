@@ -29,16 +29,20 @@ using GetShaderCallback = std::function<u32 /* shader id */ (
 
 static std::string getPbrMapName(const std::string &texture_name, const char *suffix)
 {
-	// Texture modifiers follow the source image name, e.g. "stone.png^[opacity:160".
-	std::string name = texture_name.substr(0, texture_name.find('^'));
-	size_t slash = name.find_last_of('/');
-	size_t ext = name.find_last_of('.');
-	if (ext == std::string::npos || (slash != std::string::npos && ext < slash))
+	// Composite textures and modifier expressions cannot be mapped safely to
+	// one companion image. Only resolve plain static source-image names.
+	if (texture_name.empty() || texture_name.find('^') != std::string::npos)
 		return {};
 
-	name.resize(ext);
+	size_t slash = texture_name.find_last_of('/');
+	size_t ext = texture_name.find_last_of('.');
+	if (ext == std::string::npos ||
+			(slash != std::string::npos && ext < slash))
+		return {};
+
+	std::string name = texture_name.substr(0, ext);
 	name += suffix;
-	name += ".png";
+	name += texture_name.substr(ext);
 	return name;
 }
 
