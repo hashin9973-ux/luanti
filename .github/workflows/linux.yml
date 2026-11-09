@@ -153,7 +153,7 @@ jobs:
           clientconf="video_driver=opengl3" xvfb-run ./util/test_singleplayer.sh
 
       - name: PBR/POM shader and optional-map matrix (GL3)
-        run: ./util/pbr/run_gl3_shader_smoke.sh
+        run: bash util/pbr/run_gl3_shader_smoke.sh
 
       - name: Upload PBR/POM GL3 runtime logs
         if: always()
