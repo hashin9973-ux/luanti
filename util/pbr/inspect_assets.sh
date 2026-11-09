@@ -65,6 +65,17 @@ grep -Ei '(^|/)(license|licence|copying|copyright|readme|credits|notice)([.][^/]
   echo "Archive base-color images:"
   cat "$out/archive-base-images.txt"
   echo
+  echo "PBR format metadata files:"
+  cat "$out/texture-properties-files.txt"
+  while IFS= read -r path; do
+    echo "--- $path"
+    unzip -p "$archive" "$path"
+    echo
+  done < "$out/texture-properties-files.txt"
+  echo
+  echo "First 80 normal/specular map paths:"
+  head -n 80 "$out/normal-specular-files.txt"
+  echo
   echo "Devtest basenodes texture images:"
   cat "$out/devtest-basenodes-textures.txt"
 } > "$out/report.txt"
