@@ -12,15 +12,19 @@ mkdir -p "$out"
 
 command -v jq >/dev/null
 archive_list="$audit_dir/archive-files.txt"
+base_list="$audit_dir/archive-base-images.txt"
 target_list="$audit_dir/devtest-textures.txt"
 height_list="$channel_dir/height-alpha-candidates.txt"
-[[ -f "$archive_list" && -f "$target_list" && -f "$height_list" ]]
+[[ -f "$archive_list" && -f "$base_list" && -f "$target_list" && -f "$height_list" ]]
 
 jq -e '.schema_version == 1 and (.mappings | type == "array")' "$manifest" >/dev/null
 
 zip_root="Parallax PBR 64x v2.5/assets/minecraft/textures"
-result="$out/mapping-validation.tsv"
-printf 'devtest_texture\tsource_asset\ttarget_exists\tsource_exists\tnormal_map_exists\tspecular_map_exists\theight_alpha_candidate\n' > "$result"
+mapping_tsv="$out/mapping-validation.tsv"
+source_tsv="$out/source-material-coverage.tsv"
+
+printf 'devtest_texture\tsource_asset\ttarget_exists\tsource_exists\tnormal_map_exists\tspecular_map_exists\theight_alpha_candidate\n' > "$mapping_tsv"
+printf 'source_base_texture\tnormal_map_exists\tspecular_map_exists\theight_alpha_candidate\n' > "$source_tsv"
 
 while IFS="$(printf '\t')" read -r target source; do
   [[ -n "$target" ]] || continue
@@ -48,8 +52,26 @@ while IFS="$(printf '\t')" read -r target source; do
 
   printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\n' \
     "$target" "$source" "$target_exists" "$source_exists" "$normal_exists" \
-    "$specular_exists" "$height_candidate" >> "$result"
+    "$specular_exists" "$height_candidate" >> "$mapping_tsv"
 done < <(jq -r '.mappings[] | [.target, (.source_asset // "")] | @tsv' "$manifest")
+
+# Report actual archive-wide companion-map coverage for every detected base image.
+while IFS= read -r base_path; do
+  [[ -n "$base_path" ]] || continue
+  dir="$(dirname "$base_path")"
+  leaf="$(basename "$base_path")"
+  stem="${leaf%.*}"
+  ext="${leaf##*.}"
+  normal_path="$dir/${stem}_n.$ext"
+  specular_path="$dir/${stem}_s.$ext"
+
+  if grep -Fqx "$normal_path" "$archive_list"; then normal_exists=true; else normal_exists=false; fi
+  if grep -Fqx "$specular_path" "$archive_list"; then specular_exists=true; else specular_exists=false; fi
+  if grep -Fqx "$normal_path" "$height_list"; then height_candidate=true; else height_candidate=false; fi
+
+  printf '%s\t%s\t%s\t%s\n' \
+    "$base_path" "$normal_exists" "$specular_exists" "$height_candidate" >> "$source_tsv"
+done < "$base_list"
 
 awk -F '\t' '
   NR == 1 { next }
@@ -57,19 +79,45 @@ awk -F '\t' '
     total++
     if ($3 == "true") target++
     if ($4 == "true") source++
+    if ($3 == "true" && $4 == "true") target_source++
     if ($5 == "true") normal++
     if ($6 == "true") specular++
     if ($7 == "true") height++
     if ($3 != "true" || $4 != "true") unmapped++
     if ($4 == "true" && ($5 != "true" || $6 != "true")) maps_missing++
+    if ($4 == "true" && $5 == "true" && $6 == "true") complete_pbr++
+    if ($4 == "true" && $5 == "true" && $6 == "true" && $7 == "true") complete_pbr_height++
   }
   END {
-    printf "mapping_rows=%d\ntargets_found=%d\nsource_assets_found=%d\nnormal_maps_found=%d\nspecular_maps_found=%d\nheight_alpha_candidates=%d\nunmapped_or_missing=%d\nsource_assets_missing_pbr_maps=%d\n",
-      total,target,source,normal,specular,height,unmapped,maps_missing
+    printf "manifest_rows=%d\ntargets_found=%d\nsource_assets_found=%d\ntarget_and_source_found=%d\nnormal_maps_found=%d\nspecular_maps_found=%d\nheight_alpha_candidates=%d\nunmapped_or_missing=%d\nsource_assets_missing_pbr_maps=%d\nsource_assets_with_complete_pbr_maps=%d\nsource_assets_with_complete_pbr_and_height_alpha=%d\n",
+      total,target,source,target_source,normal,specular,height,unmapped,maps_missing,complete_pbr,complete_pbr_height
   }
-' "$result" > "$out/mapping-summary.txt"
+' "$mapping_tsv" > "$out/mapping-summary.txt"
 
-cut -f2 "$result" | awk 'NF { print }' | LC_ALL=C sort | uniq -c |
+awk -F '\t' '
+  NR == 1 { next }
+  {
+    total++
+    if ($2 == "true") normal++
+    if ($3 == "true") specular++
+    if ($4 == "true") height++
+    if ($2 != "true") missing_normal++
+    if ($3 != "true") missing_specular++
+    if ($4 != "true") missing_height++
+    if ($2 == "true" && $3 == "true") paired++
+    if ($2 == "true" && $3 == "true" && $4 == "true") paired_height++
+  }
+  END {
+    printf "source_base_textures=%d\nsource_normal_maps=%d\nsource_specular_maps=%d\nsource_height_alpha_candidates=%d\nsource_missing_normal_maps=%d\nsource_missing_specular_maps=%d\nsource_missing_height_alpha=%d\nsource_complete_normal_specular_pairs=%d\nsource_complete_pbr_with_height_alpha=%d\n",
+      total,normal,specular,height,missing_normal,missing_specular,missing_height,paired,paired_height
+  }
+' "$source_tsv" > "$out/source-coverage-summary.txt"
+
+# Repeated targets are always a conflict. Repeated sources are reported
+# separately because several Devtest targets can intentionally share an asset.
+cut -f1 "$mapping_tsv" | tail -n +2 | LC_ALL=C sort | uniq -c |
+  awk '$1 > 1 { print $2 "\t" $1 }' > "$out/duplicate-target-mappings.tsv"
+cut -f2 "$mapping_tsv" | tail -n +2 | awk 'NF { print }' | LC_ALL=C sort | uniq -c |
   awk '$1 > 1 { print $2 "\t" $1 }' > "$out/duplicate-source-mappings.tsv"
 
 {
@@ -77,14 +125,20 @@ cut -f2 "$result" | awk 'NF { print }' | LC_ALL=C sort | uniq -c |
   echo "Archive: $archive"
   echo "Status: filename/path validation only; candidate mappings need visual review."
   echo
+  echo "=== Devtest target mapping summary ==="
   cat "$out/mapping-summary.txt"
   echo
-  echo "Duplicate source assignments (some may be intentional overlays/liquids):"
+  echo "=== Archive-wide PBR map coverage ==="
+  cat "$out/source-coverage-summary.txt"
+  echo
+  echo "=== Duplicate target assignments (conflicts) ==="
+  cat "$out/duplicate-target-mappings.tsv"
+  echo
+  echo "=== Duplicate source assignments (may be intentional) ==="
   cat "$out/duplicate-source-mappings.tsv"
   echo
-  echo
   echo "Complete mapping validation TSV:"
-  cat "$result"
+  cat "$mapping_tsv"
 } > "$out/report.txt"
 
 cat "$out/report.txt"
