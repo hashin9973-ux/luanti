@@ -315,6 +315,9 @@ public:
 	/// Fragment derivatives are needed to construct a per-fragment tangent frame.
 	/// GLES 2.0 drivers without GLSL ES 3.0 are conservatively treated as unsupported.
 	virtual bool supportsFragmentShaderDerivatives() const { return false; }
+
+	/// POM uses explicit texture gradients, requiring GLSL 1.30 / ES 3.0 or newer.
+	virtual bool supportsParallaxOcclusionMapping() const { return false; }
 };
 
 class IWritableShaderSource : public IShaderSource {
