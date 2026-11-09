@@ -17,7 +17,7 @@ waitfor () {
 		((n-=1))
 	done
 	echo "Waiting for ${1##*/} timed out"
-	pkill -P $
+	pkill -P "$BASHPID"
 	exit 1
 }
 
@@ -29,7 +29,7 @@ waitfor_log () {
 		((n-=1))
 	done
 	echo "Waiting for server readiness log timed out"
-	pkill -P $
+	pkill -P "$BASHPID"
 	exit 1
 }
 
