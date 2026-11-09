@@ -260,6 +260,12 @@ void TestSettings::testDefaults()
 	Settings *game = Settings::createLayer(SL_GAME);
 	Settings *def = Settings::getLayer(SL_DEFAULTS);
 
+	// PBR client settings must always be registered, even when disabled.
+	UASSERT(!def->getBool("enable_pbr"));
+	UASSERT(!def->getBool("enable_pbr_parallax"));
+	UASSERTEQ(s32, 24, def->getS32("pbr_parallax_samples"));
+	UASSERT(std::fabs(def->getFloat("pbr_parallax_height_scale") - 0.05f) < 1e-6f);
+
 	def->set("name", "FooBar");
 	UASSERT(def->get("name") == "FooBar");
 	UASSERT(game->get("name") == "FooBar");
