@@ -1392,12 +1392,12 @@ bool ImageSource::generateImagePart(std::string_view part_of_name,
 
 			CHECK_BASEIMG();
 
-			/* Apply the "clean transparent" filter, if necessary
-			 * This is needed since filtering will sample parts of the image
-			 * that are transparent and PNG optimizers often discard the color
-			 * information in those parts. */
-			if (m_setting_mipmap || m_setting_bilinear_filter ||
-				m_setting_trilinear_filter || m_setting_anisotropic_filter) {
+			/* Packed PBR maps store height/emission in alpha, not transparency.
+			 * Their alpha must remain untouched. Ordinary color textures still
+			 * need transparent-pixel cleanup to avoid color fringes. */
+			const bool pbr_data = str_starts_with(part_of_name, "applyfiltersformesh_pbr");
+			if (!pbr_data && (m_setting_mipmap || m_setting_bilinear_filter ||
+				m_setting_trilinear_filter || m_setting_anisotropic_filter)) {
 				/* Note: in theory we should pass either 0 or 127 depending on
 				 * if the texture is used with an ALPHA or ALPHA_REF material,
 				 * however we don't have this information here.
