@@ -97,7 +97,7 @@ cat "$out/report.txt"
 while IFS= read -r path; do
   [[ -n "$path" ]] || continue
   if unzip -p "$archive" "$path" 2>/dev/null |
-      grep -Eiq 'rre36[.]com/copyright-license|All Rights Reserved|redistribut(e|ion)|explicit permission'; then
+      grep -Ei 'rre36[.]com/copyright-license|All Rights Reserved|redistribut(e|ion)|explicit permission' >/dev/null; then
     printf '%s\n' "$path" >> "$out/archive-license-references.txt"
   fi
 done < <(grep -Ei '[.](glsl|txt|md|json|properties)
