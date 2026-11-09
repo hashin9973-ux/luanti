@@ -19,6 +19,12 @@ height_list="$channel_dir/height-alpha-candidates.txt"
 
 jq -e '.schema_version == 1 and (.mappings | type == "array")' "$manifest" >/dev/null
 
+# Keep the repository-visible docs copy and the packaged audit manifest in sync.
+cmp -s "$manifest" "doc/devtest_texture_mapping.json" || {
+  echo "doc/devtest_texture_mapping.json is out of sync with $manifest" >&2
+  exit 1
+}
+
 zip_root="Parallax PBR 64x v2.5/assets/minecraft/textures"
 mapping_tsv="$out/mapping-validation.tsv"
 source_tsv="$out/source-material-coverage.tsv"
