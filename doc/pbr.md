@@ -1,0 +1,129 @@
+# LabPBR materials and parallax mapping
+
+This document describes the engine-side LabPBR work in this branch. It is not
+a statement that every rendering backend or every material path has been
+visually verified.
+
+## Texture naming and loading
+
+For a plain, static source image named `stone.png`, Luanti looks for sibling
+material maps named:
+
+- `stone_n.png`: LabPBR normal, ambient-occlusion, and height data.
+- `stone_s.png`: LabPBR smoothness, reflectance/conductor, and emission data.
+
+The base image and any companion map must have matching dimensions after the
+mesh texture filter is applied. Missing maps are optional: the corresponding
+shader feature is omitted, and the material retains its available rendering
+path.
+
+Animated images, texture modifier expressions, and composite texture
+expressions are not assigned companion maps. A single sibling map cannot
+describe the result of concatenating or transforming multiple source images.
+Backends without fragment derivatives do not use the normal-map or POM path;
+the specular map can still be used.
+
+The normal and specular images are bound separately from the base-color
+texture. This also works when the base image uses Luanti's 2D-array texture
+path. The data-map mesh filter retains alpha because the normal-map alpha is
+height and the specular-map alpha is emission. It still applies the configured
+mesh upscaling and normal texture filtering.
+
+## Decoded LabPBR channels
+
+The current decoder uses these LabPBR channels:
+
+| Map | Channel | Meaning |
+| --- | --- | --- |
+| Normal | R, G | Tangent-space X/Y normal, encoded in DirectX (Y-down) convention |
+| Normal | B | Linear ambient visibility; 0 is occluded and 255 is unoccluded |
+| Normal | A | Linear height; 0 represents the deepest point (up to 25% texture depth), 255 the surface |
+| Specular | R | Perceptual smoothness, converted to roughness with `(1 - smoothness)^2` |
+| Specular | G | Linear dielectric F0 for values 0–229; 230–255 identify conductors |
+| Specular | A | Linear emission for values 0–254; 255 is the non-emissive sentinel |
+
+The engine reconstructs normal Z from the encoded X/Y values and derives a
+tangent frame from fragment position and texture-coordinate derivatives.
+The normal map modulates natural-light diffuse response and the existing
+shadow-normal path. The specular branch uses a GGX microfacet distribution and
+Schlick Fresnel. Conductor IDs currently use an albedo-tinted F0 fallback;
+the format's optional per-metal complex-IOR table is not implemented.
+
+The specular-map blue channel (porosity/subsurface scattering) is not currently
+shaded. This implementation also does not add an image-based-lighting or
+environment-probe system; the direct specular contribution uses Luanti's
+current sun/moon/custom shadow-light direction.
+
+## Parallax occlusion mapping
+
+POM is a separate, opt-in shader feature. When enabled and a normal map is
+available, the fragment shader:
+
+1. Builds a tangent frame from screen-space derivatives.
+2. Transforms the view vector into tangent space.
+3. Traverses the normal-map alpha height field using a bounded, configurable
+   number of depth layers.
+4. Interpolates between the samples around the first depth crossing.
+5. Uses the displaced UV for base color and both material maps.
+
+The maximum encoded LabPBR height depth is 25% of the texture depth. The
+configured depth scale controls how much of that range is used. POM fades
+toward grazing angles to limit excessive UV displacement. It is not applied
+when the normal map is missing or fragment derivatives are unsupported.
+
+## Settings
+
+All settings are client-side:
+
+| Setting | Default | Range / dependency |
+| --- | --- | --- |
+| `enable_pbr` | `false` | Enables optional normal and specular material maps |
+| `enable_pbr_parallax` | `false` | Requires `enable_pbr` |
+| `pbr_parallax_samples` | `24` | 8–64 samples |
+| `pbr_parallax_height_scale` | `0.05` | 0.0–0.1 multiplier |
+
+PBR remains disabled by default, preserving the non-PBR renderer unless the
+client enables the feature. POM is independently disabled by default because
+its per-fragment height traversal is more expensive than ordinary normal and
+specular sampling.
+
+## Tests and verification
+
+The unit-test module `TestPBR` covers the companion-map resolver and the
+LabPBR channel boundary conversions. It is compiled into the regular Luanti
+unit-test target.
+
+The Linux CI workflow includes a GL3 singleplayer smoke test that extracts a
+dimension-matched stone base/normal/specular set from the repository's supplied
+archive into the temporary CI checkout, enables PBR and POM in the client
+configuration, and starts the existing Devtest game. This is intended to
+exercise the real engine material path and shader startup. It is not a
+screenshot comparison and does not by itself prove visually correct POM depth
+or absence of all rendering artifacts.
+
+The PBR asset-audit workflow inventories source image/map paths, checks
+manifest targets and sidecar availability, and analyzes packed channel data.
+Its report is a mapping audit, not a claim that every source image has a
+corresponding Devtest material.
+
+## Supplied texture archive and redistribution
+
+The supplied `Parallax PBR 64x v2.5.zip` is inventoried by CI. The archive
+inventory did not find an explicit license or attribution file. Therefore the
+engine code does not copy those source images into Devtest or Windows release
+packages. Verify the pack's redistribution terms and include any required
+notices before adding its artwork to a distributable build. The mapping
+manifest records source candidates and missing matches without redistributing
+the artwork itself.
+
+## Known limitations
+
+- POM is currently integrated into the node shader path, not every possible
+  entity, wield-item, formspec, or custom mesh shader.
+- Animated and composite/modified texture expressions do not receive
+  companion maps.
+- Complex conductor optical constants and specular-blue porosity/SSS are not
+  implemented.
+- No environment-map reflections or global illumination are added by this work.
+- A GL3 startup smoke test is not visual verification. A rendered geometry
+  comparison is still required before marking POM visually verified.
