@@ -61,7 +61,7 @@ jobs:
       - name: Build
         run: |
            EXISTING_MINETEST_DIR=$PWD \
-           ./util/buildbot/buildwin${{ matrix.config.bits }}.sh B
+           ./util/buildbot/buildwin${{ matrix.config.bits }}.sh B -DINSTALL_DEVTEST=1
            mkdir -p artifact
            cp -v B/build/*.zip artifact/
 
@@ -164,6 +164,7 @@ jobs:
           -DENABLE_POSTGRESQL=OFF  `
           -DENABLE_LUAJIT=TRUE  `
           -DREQUIRE_LUAJIT=TRUE  `
+          -DINSTALL_DEVTEST=1  `
           -DRUN_IN_PLACE=1 .
 
       - name: Build
