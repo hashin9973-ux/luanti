@@ -4,6 +4,7 @@
 
 #include "node_visuals.h"
 
+#include "pbr_material.h"
 #include "mesh.h"
 #include "shader.h"
 #include "client.h"
@@ -29,20 +30,9 @@ using GetShaderCallback = std::function<u32 /* shader id */ (
 
 static std::string getPbrMapName(const std::string &texture_name, const char *suffix)
 {
-	// Composite textures and modifier expressions cannot be mapped safely to
-	// one companion image. Only resolve plain static source-image names.
-	if (texture_name.empty() || texture_name.find('^') != std::string::npos)
+	std::string name;
+	if (!labpbr::getCompanionTextureName(texture_name, suffix, name))
 		return {};
-
-	size_t slash = texture_name.find_last_of('/');
-	size_t ext = texture_name.find_last_of('.');
-	if (ext == std::string::npos ||
-			(slash != std::string::npos && ext < slash))
-		return {};
-
-	std::string name = texture_name.substr(0, ext);
-	name += suffix;
-	name += texture_name.substr(ext);
 	return name;
 }
 
