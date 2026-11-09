@@ -121,7 +121,7 @@ cut -f2 "$mapping_tsv" | tail -n +2 | awk 'NF { print }' | LC_ALL=C sort | uniq 
   awk '$1 > 1 { print $2 "\t" $1 }' > "$out/duplicate-source-mappings.tsv"
 
 # Every real Devtest basenodes image must have exactly one manifest row.
-sort "$audit_dir/devtest-basenodes-textures.txt" > "$out/actual-basenodes-targets.txt"
+LC_ALL=C sort "$audit_dir/devtest-basenodes-textures.txt" > "$out/actual-basenodes-targets.txt"
 cut -f1 "$mapping_tsv" | tail -n +2 | LC_ALL=C sort > "$out/mapped-basenodes-targets.txt"
 comm -23 "$out/actual-basenodes-targets.txt" "$out/mapped-basenodes-targets.txt" > "$out/unlisted-basenodes-targets.txt"
 comm -13 "$out/actual-basenodes-targets.txt" "$out/mapped-basenodes-targets.txt" > "$out/manifest-targets-not-in-game.txt"
