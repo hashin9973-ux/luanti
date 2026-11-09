@@ -2,9 +2,9 @@
 # Inventory the user-supplied PBR archive without altering or redistributing it.
 set -euo pipefail
 
-archive="${1:-Parallax PBR 64x v2.5.zip}"
-game_root="${2:-games/devtest}"
-out="${3:-build/pbr-audit}"
+archive="\${1:-Parallax PBR 64x v2.5.zip}"
+game_root="\${2:-games/devtest}"
+out="\${3:-build/pbr-audit}"
 mkdir -p "$out"
 
 if [[ ! -f "$archive" ]]; then
@@ -15,21 +15,21 @@ command -v unzip >/dev/null
 unzip -tqq "$archive"
 unzip -Z1 "$archive" | LC_ALL=C sort -f > "$out/archive-files.txt"
 
-# Separate base-color candidates from conventionally suffixed material maps.
+# Separate base-color candidates from conventional material-map suffixes.
 awk '
   {
     name=tolower($0)
-    if (name ~ /\\.(png|tga|jpg|jpeg|bmp|webp)$/) {
+    if (name ~ /[.](png|tga|jpg|jpeg|bmp|webp)$/) {
       leaf=name
-      sub(/^.*\\//, "", leaf)
-      if (leaf ~ /(_normal|_n|_norm|_bump|_height|_h|_parallax|_displacement|_disp|_specular|_spec|_s|_roughness|_rough|_r|_metallic|_metal|_m|_ao|_occlusion)\\.[^.]+$/) {
+      sub(/^.*[/]/, "", leaf)
+      if (leaf ~ /(_normal|_n|_norm|_bump|_height|_h|_parallax|_displacement|_disp|_specular|_spec|_s|_roughness|_rough|_r|_metallic|_metal|_m|_ao|_occlusion)[.][^.]+$/) {
         maps++
-        if (leaf ~ /(_normal|_n|_norm|_bump)\\.[^.]+$/) normal++
-        if (leaf ~ /(_height|_h|_parallax|_displacement|_disp)\\.[^.]+$/) height++
-        if (leaf ~ /(_specular|_spec|_s)\\.[^.]+$/) specular++
-        if (leaf ~ /(_roughness|_rough|_r)\\.[^.]+$/) roughness++
-        if (leaf ~ /(_metallic|_metal|_m)\\.[^.]+$/) metallic++
-        if (leaf ~ /(_ao|_occlusion)\\.[^.]+$/) ao++
+        if (leaf ~ /(_normal|_n|_norm|_bump)[.][^.]+$/) normal++
+        if (leaf ~ /(_height|_h|_parallax|_displacement|_disp)[.][^.]+$/) height++
+        if (leaf ~ /(_specular|_spec|_s)[.][^.]+$/) specular++
+        if (leaf ~ /(_roughness|_rough|_r)[.][^.]+$/) roughness++
+        if (leaf ~ /(_metallic|_metal|_m)[.][^.]+$/) metallic++
+        if (leaf ~ /(_ao|_occlusion)[.][^.]+$/) ao++
       } else {
         base++
         print $0 > base_file
@@ -37,17 +37,17 @@ awk '
     }
   }
   END {
-    printf "base_images=%d\\nmap_images=%d\\nnormal_candidates=%d\\nheight_candidates=%d\\nspecular_candidates=%d\\nroughness_candidates=%d\\nmetallic_candidates=%d\\nao_candidates=%d\\n",
+    printf "base_images=%d\nmap_images=%d\nnormal_candidates=%d\nheight_candidates=%d\nspecular_candidates=%d\nroughness_candidates=%d\nmetallic_candidates=%d\nao_candidates=%d\n",
       base,maps,normal,height,specular,roughness,metallic,ao
   }
 ' base_file="$out/archive-base-images.txt" "$out/archive-files.txt" > "$out/archive-summary.txt"
 
-find "$game_root" -type f \\( -iname '*.png' -o -iname '*.tga' -o -iname '*.jpg' -o -iname '*.jpeg' -o -iname '*.bmp' -o -iname '*.webp' \\) -printf '%P\\n' | LC_ALL=C sort > "$out/devtest-textures.txt"
-grep -E '^mods/basenodes/textures/.*\\.(png|tga|jpg|jpeg|bmp|webp)$' "$out/devtest-textures.txt" > "$out/devtest-basenodes-textures.txt" || true
+find "$game_root" -type f \( -iname '*.png' -o -iname '*.tga' -o -iname '*.jpg' -o -iname '*.jpeg' -o -iname '*.bmp' -o -iname '*.webp' \) -printf '%P\n' | LC_ALL=C sort > "$out/devtest-textures.txt"
+grep -E '^mods/basenodes/textures/.*[.](png|tga|jpg|jpeg|bmp|webp)$' "$out/devtest-textures.txt" > "$out/devtest-basenodes-textures.txt" || true
 
 # These files determine redistribution and attribution obligations. Do not assume
 # that the engine's LGPL license covers the archive's separate assets.
-grep -Ei '(^|/)(license|licence|copying|copyright|readme|credits|notice)(\\.[^/]*)?$' "$out/archive-files.txt" > "$out/archive-license-files.txt" || true
+grep -Ei '(^|/)(license|licence|copying|copyright|readme|credits|notice)([.][^/]*)?$' "$out/archive-files.txt" > "$out/archive-license-files.txt" || true
 
 {
   echo "Archive: $archive"
