@@ -146,45 +146,18 @@ jobs:
         run: |
           clientconf="video_driver=opengl3" xvfb-run ./util/test_singleplayer.sh
 
-      # Extract a single archive material into the ephemeral CI workspace.
-      # The source maps are used for runtime validation only and are not packaged.
-      - name: PBR/POM runtime shader test (GL3)
-        run: |
-          set -euo pipefail
-          texture_dir=games/devtest/mods/basenodes/textures
-          archive="Parallax PBR 64x v2.5.zip"
-          asset_root="Parallax PBR 64x v2.5/assets/minecraft/textures/block"
-          # Use a dimension-matched 64x64 albedo and its LabPBR companions.
-          unzip -p "$archive" "$asset_root/stone.png" > "$texture_dir/default_stone.png"
-          unzip -p "$archive" "$asset_root/stone_n.png" > "$texture_dir/default_stone_n.png"
-          unzip -p "$archive" "$asset_root/stone_s.png" > "$texture_dir/default_stone_s.png"
-          test -s "$texture_dir/default_stone.png"
-          test -s "$texture_dir/default_stone_n.png"
-          test -s "$texture_dir/default_stone_s.png"
-          mkdir -p build
-          runtime_log=build/pbr-gl3-runtime.log
-          set +e
-          clientconf=$'video_driver=opengl3\nenable_pbr=true\nenable_pbr_parallax=true\npbr_parallax_samples=32\npbr_parallax_height_scale=0.05' \
-            xvfb-run ./util/test_singleplayer.sh 2>&1 | tee "$runtime_log"
-          runtime_status=${PIPESTATUS[0]}
-          set -e
+      - name: PBR/POM shader and optional-map matrix (GL3)
+        run: ./util/pbr/run_gl3_shader_smoke.sh
 
-          # Luanti may fall back to a default material after a shader error;
-          # require the actual PBR shader variant to compile and link.
-          if grep -Eiq 'generateShader\(\): failed to generate shaders for .*USE_PBR_(NORMAL_MAP|SPECULAR_MAP|POM)|Failed to compile the .*USE_PBR_' "$runtime_log"; then
-            echo "PBR/POM GLSL compilation or link failure detected."
-            exit 1
-          fi
-          exit "$runtime_status"
-
-      - name: Upload PBR/POM GL3 runtime log
+      - name: Upload PBR/POM GL3 runtime logs
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: pbr-pom-gl3-runtime-log
-          path: build/pbr-gl3-runtime.log
+          name: pbr-pom-gl3-runtime-logs
+          path: build/pbr-gl3-logs/
           if-no-files-found: ignore
           retention-days: 14
+
   # Build with prometheus-cpp (server-only), also runs on ARM64
   clang_prometheus_arm:
     name: "clang (with Prometheus, ARM64)"
