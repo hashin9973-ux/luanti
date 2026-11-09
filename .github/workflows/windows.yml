@@ -22,6 +22,7 @@ on:
       - 'builtin/settingtypes.txt'
       - 'util/pbr/**'
       - '.github/workflows/windows.yml'
+      - '.github/workflows/linux.yml'
   pull_request:
     paths:
       - 'lib/**.[ch]'
@@ -42,6 +43,7 @@ on:
       - 'builtin/settingtypes.txt'
       - 'util/pbr/**'
       - '.github/workflows/windows.yml'
+      - '.github/workflows/linux.yml'
 
 jobs:
   mingw:
