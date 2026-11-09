@@ -50,7 +50,104 @@ grep -E '^mods/basenodes/textures/.*[.](png|tga|jpg|jpeg|bmp|webp)$' "$out/devte
 
 # These files determine redistribution and attribution obligations. Do not assume
 # that the engine's LGPL license covers the archive's separate assets.
-grep -Ei '(^|/)(license|licence|copying|copyright|readme|credits|notice)([.][^/]*)?$' "$out/archive-files.txt" > "$out/archive-license-files.txt" || true
+grep -Ei '(^|/)(license|licence|copying|copyright|readme|credits|notice)([.][^/]*)?
+
+{
+  echo "Archive: $archive"
+  echo "SHA-256: $(sha256sum "$archive" | awk '{print $1}')"
+  echo "Archive entries: $(wc -l < "$out/archive-files.txt")"
+  echo
+  cat "$out/archive-summary.txt"
+  echo
+  echo "Potential license/attribution entries:"
+  cat "$out/archive-license-files.txt"
+  echo
+  echo "Archive base-color images:"
+  cat "$out/archive-base-images.txt"
+  echo
+  echo "PBR format metadata files:"
+  cat "$out/texture-properties-files.txt"
+  while IFS= read -r path; do
+    echo "--- $path"
+    unzip -p "$archive" "$path"
+    echo
+  done < "$out/texture-properties-files.txt"
+  echo
+  echo "First 80 normal/specular map paths:"
+  head -n 80 "$out/normal-specular-files.txt"
+  echo
+  echo "Devtest basenodes texture images:"
+  cat "$out/devtest-basenodes-textures.txt"
+} > "$out/report.txt"
+
+cat "$out/report.txt"
+ "$out/archive-files.txt" > "$out/archive-license-files.txt" || true
+: > "$out/texture-properties-files.txt"
+grep -Ei '(^|/)texture[.]properties
+
+{
+  echo "Archive: $archive"
+  echo "SHA-256: $(sha256sum "$archive" | awk '{print $1}')"
+  echo "Archive entries: $(wc -l < "$out/archive-files.txt")"
+  echo
+  cat "$out/archive-summary.txt"
+  echo
+  echo "Potential license/attribution entries:"
+  cat "$out/archive-license-files.txt"
+  echo
+  echo "Archive base-color images:"
+  cat "$out/archive-base-images.txt"
+  echo
+  echo "PBR format metadata files:"
+  cat "$out/texture-properties-files.txt"
+  while IFS= read -r path; do
+    echo "--- $path"
+    unzip -p "$archive" "$path"
+    echo
+  done < "$out/texture-properties-files.txt"
+  echo
+  echo "First 80 normal/specular map paths:"
+  head -n 80 "$out/normal-specular-files.txt"
+  echo
+  echo "Devtest basenodes texture images:"
+  cat "$out/devtest-basenodes-textures.txt"
+} > "$out/report.txt"
+
+cat "$out/report.txt"
+ "$out/archive-files.txt" > "$out/texture-properties-files.txt" || true
+: > "$out/normal-specular-files.txt"
+grep -Ei '(_n|_s)[.](png|tga|jpg|jpeg|bmp|webp)
+
+{
+  echo "Archive: $archive"
+  echo "SHA-256: $(sha256sum "$archive" | awk '{print $1}')"
+  echo "Archive entries: $(wc -l < "$out/archive-files.txt")"
+  echo
+  cat "$out/archive-summary.txt"
+  echo
+  echo "Potential license/attribution entries:"
+  cat "$out/archive-license-files.txt"
+  echo
+  echo "Archive base-color images:"
+  cat "$out/archive-base-images.txt"
+  echo
+  echo "PBR format metadata files:"
+  cat "$out/texture-properties-files.txt"
+  while IFS= read -r path; do
+    echo "--- $path"
+    unzip -p "$archive" "$path"
+    echo
+  done < "$out/texture-properties-files.txt"
+  echo
+  echo "First 80 normal/specular map paths:"
+  head -n 80 "$out/normal-specular-files.txt"
+  echo
+  echo "Devtest basenodes texture images:"
+  cat "$out/devtest-basenodes-textures.txt"
+} > "$out/report.txt"
+
+cat "$out/report.txt"
+ "$out/archive-files.txt" > "$out/normal-specular-files.txt" || true
 
 {
   echo "Archive: $archive"
