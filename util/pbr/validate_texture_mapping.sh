@@ -113,6 +113,81 @@ awk -F '\t' '
   }
 ' "$source_tsv" > "$out/source-coverage-summary.txt"
 
+# Count archive block materials that have no source-side mapping to Devtest.
+grep -E '/textures/block/[^/]+[.](png|tga|jpg|jpeg|bmp|webp)
+# separately because several Devtest targets can intentionally share an asset.
+cut -f1 "$mapping_tsv" | tail -n +2 | LC_ALL=C sort | uniq -c |
+  awk '$1 > 1 { print $2 "\t" $1 }' > "$out/duplicate-target-mappings.tsv"
+cut -f2 "$mapping_tsv" | tail -n +2 | awk 'NF { print }' | LC_ALL=C sort | uniq -c |
+  awk '$1 > 1 { print $2 "\t" $1 }' > "$out/duplicate-source-mappings.tsv"
+
+# Every real Devtest basenodes image must have exactly one manifest row.
+LC_ALL=C sort "$audit_dir/devtest-basenodes-textures.txt" > "$out/actual-basenodes-targets.txt"
+cut -f1 "$mapping_tsv" | tail -n +2 | LC_ALL=C sort > "$out/mapped-basenodes-targets.txt"
+comm -23 "$out/actual-basenodes-targets.txt" "$out/mapped-basenodes-targets.txt" > "$out/unlisted-basenodes-targets.txt"
+comm -13 "$out/actual-basenodes-targets.txt" "$out/mapped-basenodes-targets.txt" > "$out/manifest-targets-not-in-game.txt"
+{
+  echo "basenodes_texture_images=$(wc -l < "$out/actual-basenodes-targets.txt")"
+  echo "manifest_target_rows=$(wc -l < "$out/mapped-basenodes-targets.txt")"
+  echo "unlisted_basenodes_targets=$(wc -l < "$out/unlisted-basenodes-targets.txt")"
+  echo "manifest_targets_not_in_game=$(wc -l < "$out/manifest-targets-not-in-game.txt")"
+} > "$out/target-coverage-summary.txt"
+
+{
+  echo "Manifest: $manifest"
+  echo "Archive: $archive"
+  echo "Status: filename/path validation only; candidate mappings need visual review."
+  echo
+  echo "=== Devtest target mapping summary ==="
+  cat "$out/mapping-summary.txt"
+  echo
+  echo "=== Archive-wide PBR map coverage ==="
+  cat "$out/source-coverage-summary.txt"
+  echo
+  echo "=== Archive block source-to-Devtest coverage ==="
+  cat "$out/source-mapping-coverage-summary.txt"
+  echo "Unmapped archive block base textures:"
+  cat "$out/unmapped-source-block-assets.txt"
+  echo
+  echo "=== Devtest basenodes manifest coverage ==="
+  cat "$out/target-coverage-summary.txt"
+  echo "Unlisted Devtest targets:"
+  cat "$out/unlisted-basenodes-targets.txt"
+  echo "Manifest targets absent from Devtest:"
+  cat "$out/manifest-targets-not-in-game.txt"
+  echo
+  echo "=== Duplicate target assignments (conflicts) ==="
+  cat "$out/duplicate-target-mappings.tsv"
+  echo
+  echo "=== Duplicate source assignments (may be intentional) ==="
+  cat "$out/duplicate-source-mappings.tsv"
+  echo
+  echo "Complete mapping validation TSV:"
+  cat "$mapping_tsv"
+} > "$out/report.txt"
+
+cat "$out/report.txt"
+
+if [[ -s "$out/duplicate-target-mappings.tsv" ]]; then
+  echo "Conflicting Devtest target mappings found." >&2
+  exit 1
+fi
+if [[ -s "$out/unlisted-basenodes-targets.txt" || -s "$out/manifest-targets-not-in-game.txt" ]]; then
+  echo "Devtest basenodes texture manifest is out of sync with the game." >&2
+  exit 1
+fi
+ "$base_list" |
+  sed "s#^$zip_root/##" | LC_ALL=C sort > "$out/source-block-base-images.txt"
+jq -r '.mappings[].source_asset // empty' "$manifest" |
+  LC_ALL=C sort -u > "$out/manifest-source-block-assets.txt"
+comm -23 "$out/source-block-base-images.txt" "$out/manifest-source-block-assets.txt" \
+  > "$out/unmapped-source-block-assets.txt"
+{
+  echo "archive_block_base_textures=$(wc -l < "$out/source-block-base-images.txt")"
+  echo "manifest_source_block_assets=$(wc -l < "$out/manifest-source-block-assets.txt")"
+  echo "unmapped_archive_block_base_textures=$(wc -l < "$out/unmapped-source-block-assets.txt")"
+} > "$out/source-mapping-coverage-summary.txt"
+
 # Repeated targets are always a conflict. Repeated sources are reported
 # separately because several Devtest targets can intentionally share an asset.
 cut -f1 "$mapping_tsv" | tail -n +2 | LC_ALL=C sort | uniq -c |
