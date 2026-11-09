@@ -20,6 +20,8 @@
 #include "log.h"
 #include "client/tile.h"
 
+#include <algorithm>
+
 #include <mt_opengl.h>
 
 /*
