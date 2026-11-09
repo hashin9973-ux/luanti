@@ -39,14 +39,15 @@ The current decoder uses these LabPBR channels:
 | Normal | B | Linear ambient visibility; 0 is occluded and 255 is unoccluded |
 | Normal | A | Linear height; 0 represents the deepest point (up to 25% texture depth), 255 the surface |
 | Specular | R | Perceptual smoothness, converted to roughness with `(1 - smoothness)^2` |
-| Specular | G | Linear dielectric F0 for values 0–229; 230–255 identify conductors |
+| Specular | G | Linear dielectric F0 for values 0–229 (directly `G / 255`); 230–255 identify conductors |
 | Specular | A | Linear emission for values 0–254; 255 is the non-emissive sentinel |
 
 The engine reconstructs normal Z from the encoded X/Y values and derives a
 tangent frame from fragment position and texture-coordinate derivatives.
-The normal map modulates natural-light diffuse response and the existing
-shadow-normal path. The specular branch uses a GGX microfacet distribution and
-Schlick Fresnel. Conductor IDs currently use an albedo-tinted F0 fallback;
+The normal map modulates natural-light diffuse response and the PBR specular
+BRDF. Dynamic-shadow visibility attenuates the direct specular contribution;
+the current shadow-map visibility test itself still uses geometric shadow data.
+The specular branch uses a GGX microfacet distribution and Schlick Fresnel. Conductor IDs currently use an albedo-tinted F0 fallback;
 the format's optional per-metal complex-IOR table is not implemented.
 
 The specular-map blue channel (porosity/subsurface scattering) is not currently
