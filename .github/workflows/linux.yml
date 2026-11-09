@@ -16,6 +16,9 @@ on:
       - 'client/shaders/**'
       - 'util/ci/**'
       - 'util/helper_mod/**'
+      - 'util/pbr/**'
+      - 'util/test_singleplayer.sh'
+      - 'Parallax PBR 64x v2.5.zip'
       - '.github/workflows/linux.yml'
   pull_request:
     paths:
@@ -31,6 +34,9 @@ on:
       - 'client/shaders/**'
       - 'util/ci/**'
       - 'util/helper_mod/**'
+      - 'util/pbr/**'
+      - 'util/test_singleplayer.sh'
+      - 'Parallax PBR 64x v2.5.zip'
       - '.github/workflows/linux.yml'
 
 env:
