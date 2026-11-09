@@ -23,6 +23,7 @@ on:
       - 'util/pbr/**'
       - '.github/workflows/windows.yml'
       - '.github/workflows/linux.yml'
+      - 'util/test_multiplayer.sh'
   pull_request:
     paths:
       - 'lib/**.[ch]'
@@ -44,6 +45,7 @@ on:
       - 'util/pbr/**'
       - '.github/workflows/windows.yml'
       - '.github/workflows/linux.yml'
+      - 'util/test_multiplayer.sh'
 
 jobs:
   mingw:
