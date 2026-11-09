@@ -11,9 +11,12 @@ uniform sampler2D texture2;
 #define pbrNormalTexture texture2
 #endif
 
+#if defined(USE_PBR_NORMAL_MAP) || defined(USE_PBR_SPECULAR_MAP)
+uniform vec3 pbrLightDirection;
+#endif
+
 #ifdef USE_PBR_SPECULAR_MAP
 uniform sampler2D texture3;
-uniform vec3 pbrLightDirection;
 #define pbrSpecularTexture texture3
 #endif
 
@@ -563,13 +566,26 @@ void main(void)
 	float pbr_shadow_visibility = 1.0;
 
 #ifdef USE_PBR_NORMAL_MAP
-	// Ambient occlusion is stored linearly in LabPBR normal-map blue.
-	col.rgb *= mix(1.0, pbr_normal_sample.b, 0.5);
+	// Keep existing vertex-baked illumination, but modulate its natural-light
+	// component by the normal-map response relative to the geometric normal.
+	vec3 pbr_light = normalize(pbrLightDirection);
+	float geometric_no_l = max(dot(pbr_geometric_normal, pbr_light), 0.0);
+	float mapped_no_l = max(dot(pbr_normal, pbr_light), 0.0);
+	float diffuse_ratio = geometric_no_l > 0.02 ?
+			clamp(mapped_no_l / geometric_no_l, 0.0, 2.0) : 1.0;
+	col.rgb *= mix(1.0, diffuse_ratio, 1.0 - nightRatio);
+
+	// LabPBR ambient visibility is linear: 0 = occluded, 1 = unoccluded.
+	// Apply it to natural lighting, not the baked artificial-light component.
+	col.rgb *= mix(pbr_normal_sample.b, 1.0, nightRatio);
 #endif
 
 #ifdef ENABLE_DYNAMIC_SHADOWS
 	// Fragment normal, can differ from vNormal which is derived from vertex normals.
 	vec3 fNormal = vNormal;
+#ifdef USE_PBR_NORMAL_MAP
+	fNormal = pbr_normal;
+#endif
 
 	if (f_shadow_strength > 0.0) {
 		float shadow_int = 0.0;
@@ -623,8 +639,8 @@ void main(void)
 		}
 
 		shadow_int *= f_adj_shadow_strength;
-		pbr_shadow_visibility = 1.0 -
-			(1.0 - shadow_uncorrected) * f_adj_shadow_strength * distance_rate;
+		// shadow_int is the final shadow amount (0 = lit, 1 = fully shadowed).
+		pbr_shadow_visibility = 1.0 - shadow_int;
 
 		// calculate fragment color from components:
 		col.rgb =
@@ -667,7 +683,7 @@ void main(void)
 		col.rgb += water_reflect_color * f_adj_shadow_strength * brightness_factor;
 #endif
 
-#if (defined(ENABLE_NODE_SPECULAR) && !MATERIAL_WATER_REFLECTIONS)
+#if (defined(ENABLE_NODE_SPECULAR) && !MATERIAL_WATER_REFLECTIONS && !defined(USE_PBR_SPECULAR_MAP))
 		// Apply specular to blocks.
 		if (dot(v_LightDirection, vNormal) < 0.0) {
 			float intensity = 2.0 * (1.0 - (base.r * varColor.r));
@@ -693,9 +709,13 @@ void main(void)
 	vec4 pbr_specular_sample = texture2D(pbrSpecularTexture, pbr_uv);
 	float perceptual_smoothness = pbr_specular_sample.r;
 	float roughness = max(pow(1.0 - perceptual_smoothness, 2.0), 0.045);
-	float f0_value = clamp(pbr_specular_sample.g * (255.0 / 229.0), 0.0, 1.0);
+	// LabPBR G stores dielectric F0 directly (0..229 / 255); 230..255
+	// denotes a conductor. Use albedo as the conductor F0 fallback.
+	float f0_value = clamp(pbr_specular_sample.g, 0.02, 0.9);
 	float is_metal = step(230.0 / 255.0, pbr_specular_sample.g);
-	vec3 f0 = mix(vec3(f0_value), base.rgb, is_metal);
+	vec3 f0 = mix(vec3(f0_value), base.rgb * varColor.rgb, is_metal);
+	// Conductors have no diffuse base component; their albedo tints reflection.
+	col.rgb *= 1.0 - is_metal;
 
 	vec3 N = normalize(pbr_normal);
 	vec3 V = normalize(cameraPosition - (worldPosition + cameraOffset));
