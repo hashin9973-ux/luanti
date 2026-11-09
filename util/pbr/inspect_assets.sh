@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Inventory the user-supplied PBR archive without altering or redistributing it.
+# Inventory the PBR archive without altering or redistributing source assets.
 set -euo pipefail
 
 archive="Parallax PBR 64x v2.5.zip"
@@ -18,7 +18,6 @@ command -v unzip >/dev/null
 unzip -tqq "$archive"
 unzip -Z1 "$archive" | LC_ALL=C sort -f > "$out/archive-files.txt"
 
-# Separate base-color candidates from conventional material-map suffixes.
 awk '
   {
     name=tolower($0)
@@ -40,7 +39,7 @@ awk '
     }
   }
   END {
-    printf "base_images=%d\nmap_images=%d\nnormal_candidates=%d\nheight_candidates=%d\nspecular_candidates=%d\nroughness_candidates=%d\nmetallic_candidates=%d\nao_candidates=%d\n",
+    printf "base_images=%d\nmap_images=%d\nnormal_candidates=%d\nheight_named_candidates=%d\nspecular_candidates=%d\nroughness_named_candidates=%d\nmetallic_named_candidates=%d\nao_named_candidates=%d\n",
       base,maps,normal,height,specular,roughness,metallic,ao
   }
 ' base_file="$out/archive-base-images.txt" "$out/archive-files.txt" > "$out/archive-summary.txt"
@@ -48,75 +47,12 @@ awk '
 find "$game_root" -type f \( -iname '*.png' -o -iname '*.tga' -o -iname '*.jpg' -o -iname '*.jpeg' -o -iname '*.bmp' -o -iname '*.webp' \) -printf '%P\n' | LC_ALL=C sort > "$out/devtest-textures.txt"
 grep -E '^mods/basenodes/textures/.*[.](png|tga|jpg|jpeg|bmp|webp)$' "$out/devtest-textures.txt" > "$out/devtest-basenodes-textures.txt" || true
 
-# These files determine redistribution and attribution obligations. Do not assume
-# that the engine's LGPL license covers the archive's separate assets.
-grep -Ei '(^|/)(license|licence|copying|copyright|readme|credits|notice)([.][^/]*)?
-
-{
-  echo "Archive: $archive"
-  echo "SHA-256: $(sha256sum "$archive" | awk '{print $1}')"
-  echo "Archive entries: $(wc -l < "$out/archive-files.txt")"
-  echo
-  cat "$out/archive-summary.txt"
-  echo
-  echo "Potential license/attribution entries:"
-  cat "$out/archive-license-files.txt"
-  echo
-  echo "Archive base-color images:"
-  cat "$out/archive-base-images.txt"
-  echo
-  echo "PBR format metadata files:"
-  cat "$out/texture-properties-files.txt"
-  while IFS= read -r path; do
-    echo "--- $path"
-    unzip -p "$archive" "$path"
-    echo
-  done < "$out/texture-properties-files.txt"
-  echo
-  echo "First 80 normal/specular map paths:"
-  head -n 80 "$out/normal-specular-files.txt"
-  echo
-  echo "Devtest basenodes texture images:"
-  cat "$out/devtest-basenodes-textures.txt"
-} > "$out/report.txt"
-
-cat "$out/report.txt"
- "$out/archive-files.txt" > "$out/archive-license-files.txt" || true
+: > "$out/archive-license-files.txt"
+grep -Ei '(^|/)(license|licence|copying|copyright|readme|credits|notice)([.][^/]*)?$' "$out/archive-files.txt" > "$out/archive-license-files.txt" || true
 : > "$out/texture-properties-files.txt"
-grep -Ei '(^|/)texture[.]properties
-
-{
-  echo "Archive: $archive"
-  echo "SHA-256: $(sha256sum "$archive" | awk '{print $1}')"
-  echo "Archive entries: $(wc -l < "$out/archive-files.txt")"
-  echo
-  cat "$out/archive-summary.txt"
-  echo
-  echo "Potential license/attribution entries:"
-  cat "$out/archive-license-files.txt"
-  echo
-  echo "Archive base-color images:"
-  cat "$out/archive-base-images.txt"
-  echo
-  echo "PBR format metadata files:"
-  cat "$out/texture-properties-files.txt"
-  while IFS= read -r path; do
-    echo "--- $path"
-    unzip -p "$archive" "$path"
-    echo
-  done < "$out/texture-properties-files.txt"
-  echo
-  echo "First 80 normal/specular map paths:"
-  head -n 80 "$out/normal-specular-files.txt"
-  echo
-  echo "Devtest basenodes texture images:"
-  cat "$out/devtest-basenodes-textures.txt"
-} > "$out/report.txt"
-
-cat "$out/report.txt"
- "$out/archive-files.txt" > "$out/texture-properties-files.txt" || true
+grep -Ei '(^|/)texture[.]properties$' "$out/archive-files.txt" > "$out/texture-properties-files.txt" || true
 : > "$out/normal-specular-files.txt"
-grep -Ei '(_n|_s)[.](png|tga|jpg|jpeg|bmp|webp)
+grep -Ei '(_n|_s)[.](png|tga|jpg|jpeg|bmp|webp)$' "$out/archive-files.txt" > "$out/normal-specular-files.txt" || true
 
 {
   echo "Archive: $archive"
@@ -128,9 +64,6 @@ grep -Ei '(_n|_s)[.](png|tga|jpg|jpeg|bmp|webp)
   echo "Potential license/attribution entries:"
   cat "$out/archive-license-files.txt"
   echo
-  echo "Archive base-color images:"
-  cat "$out/archive-base-images.txt"
-  echo
   echo "PBR format metadata files:"
   cat "$out/texture-properties-files.txt"
   while IFS= read -r path; do
@@ -139,39 +72,8 @@ grep -Ei '(_n|_s)[.](png|tga|jpg|jpeg|bmp|webp)
     echo
   done < "$out/texture-properties-files.txt"
   echo
-  echo "First 80 normal/specular map paths:"
-  head -n 80 "$out/normal-specular-files.txt"
-  echo
-  echo "Devtest basenodes texture images:"
-  cat "$out/devtest-basenodes-textures.txt"
-} > "$out/report.txt"
-
-cat "$out/report.txt"
- "$out/archive-files.txt" > "$out/normal-specular-files.txt" || true
-
-{
-  echo "Archive: $archive"
-  echo "SHA-256: $(sha256sum "$archive" | awk '{print $1}')"
-  echo "Archive entries: $(wc -l < "$out/archive-files.txt")"
-  echo
-  cat "$out/archive-summary.txt"
-  echo
-  echo "Potential license/attribution entries:"
-  cat "$out/archive-license-files.txt"
-  echo
-  echo "Archive base-color images:"
-  cat "$out/archive-base-images.txt"
-  echo
-  echo "PBR format metadata files:"
-  cat "$out/texture-properties-files.txt"
-  while IFS= read -r path; do
-    echo "--- $path"
-    unzip -p "$archive" "$path"
-    echo
-  done < "$out/texture-properties-files.txt"
-  echo
-  echo "First 80 normal/specular map paths:"
-  head -n 80 "$out/normal-specular-files.txt"
+  echo "First 100 normal/specular map paths:"
+  head -n 100 "$out/normal-specular-files.txt"
   echo
   echo "Devtest basenodes texture images:"
   cat "$out/devtest-basenodes-textures.txt"
