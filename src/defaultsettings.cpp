@@ -263,6 +263,10 @@ void set_default_settings()
 	settings->setDefault("fov", "72");
 	settings->setDefault("leaves_style", "fancy");
 	settings->setDefault("connected_glass", "false");
+	settings->setDefault("enable_pbr", "false");
+	settings->setDefault("enable_pbr_parallax", "false");
+	settings->setDefault("pbr_parallax_samples", "24");
+	settings->setDefault("pbr_parallax_height_scale", "0.05");
 	settings->setDefault("smooth_lighting", "true");
 	settings->setDefault("performance_tradeoffs", "false");
 	settings->setDefault("array_texture_max", "65535");
