@@ -407,6 +407,17 @@ public:
 		return m_fully_programmable;
 	}
 
+	bool supportsFragmentShaderDerivatives() const override
+	{
+		auto *driver = RenderingEngine::get_video_driver();
+		if (driver->getDriverType() == video::EDT_NULL)
+			return false;
+		if (driver->getDriverType() == video::EDT_OGLES2)
+			return m_have_glsl3;
+		// Desktop GLSL 1.20 and newer have fragment derivatives.
+		return true;
+	}
+
 private:
 
 	// The id of the thread that is allowed to use irrlicht directly
@@ -909,6 +920,16 @@ void ShaderFeatures::setConstants(ShaderConstants &consts) const
 			consts["USE_SKINNING"] = 1;
 			consts["MAX_JOINTS"] = (int)max_joints;
 		}
+	}
+	if (pbr_normal_map)
+		consts["USE_PBR_NORMAL_MAP"] = 1;
+	if (pbr_specular_map)
+		consts["USE_PBR_SPECULAR_MAP"] = 1;
+	if (pbr_parallax && pbr_normal_map) {
+		consts["USE_PBR_POM"] = 1;
+		consts["PBR_PARALLAX_SAMPLES"] = rangelim(pbr_parallax_samples, 8, 64);
+		consts["PBR_PARALLAX_HEIGHT_SCALE"] =
+			std::clamp(pbr_parallax_height_scale, 0.0f, 0.1f);
 	}
 }
 
