@@ -109,10 +109,8 @@ jobs:
 
       - uses: actions/upload-artifact@v7
         with:
-          archive: false
-          path: |
-            artifact/*.zip
-            artifact/SHA256SUMS.txt
+          archive: true
+          path: artifact/
           if-no-files-found: error
 
       - uses: actions/upload-artifact@v7
@@ -231,6 +229,6 @@ jobs:
 
       - uses: actions/upload-artifact@v7
         with:
-          archive: false
+          archive: true
           path: .\Package\
           if-no-files-found: error

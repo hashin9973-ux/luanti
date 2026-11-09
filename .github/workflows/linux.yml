@@ -23,6 +23,7 @@ on:
       - 'util/test_singleplayer.sh'
       - 'Parallax PBR 64x v2.5.zip'
       - '.github/workflows/linux.yml'
+      - '.github/workflows/windows.yml'
   pull_request:
     paths:
       - 'lib/**.[ch]'
@@ -44,6 +45,7 @@ on:
       - 'util/test_singleplayer.sh'
       - 'Parallax PBR 64x v2.5.zip'
       - '.github/workflows/linux.yml'
+      - '.github/workflows/windows.yml'
 
 env:
   MINETEST_POSTGRESQL_CONNECT_STRING: 'host=localhost user=minetest password=minetest dbname=minetest'
@@ -150,14 +152,6 @@ jobs:
         run: |
           ./bin/luanti --run-unittests
 
-      - name: Integration test + devtest
-        run: |
-          ./util/test_multiplayer.sh
-
-      - name: Singleplayer test (GL3)
-        run: |
-          clientconf="video_driver=opengl3" xvfb-run ./util/test_singleplayer.sh
-
       - name: PBR/POM shader and optional-map matrix (GL3)
         run: bash util/pbr/run_gl3_shader_smoke.sh
 
@@ -169,6 +163,14 @@ jobs:
           path: build/pbr-gl3-logs/
           if-no-files-found: ignore
           retention-days: 14
+
+      - name: Integration test + devtest
+        run: |
+          ./util/test_multiplayer.sh
+
+      - name: Singleplayer test (GL3)
+        run: |
+          clientconf="video_driver=opengl3" xvfb-run ./util/test_singleplayer.sh
 
   # Build with prometheus-cpp (server-only), also runs on ARM64
   clang_prometheus_arm:
