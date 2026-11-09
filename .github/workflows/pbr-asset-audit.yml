@@ -7,11 +7,13 @@ on:
     paths:
       - 'Parallax PBR 64x v2.5.zip'
       - 'util/pbr/**'
+      - 'doc/devtest_texture_mapping.json'
       - '.github/workflows/pbr-asset-audit.yml'
   pull_request:
     paths:
       - 'Parallax PBR 64x v2.5.zip'
       - 'util/pbr/**'
+      - 'doc/devtest_texture_mapping.json'
       - '.github/workflows/pbr-asset-audit.yml'
   workflow_dispatch:
 
