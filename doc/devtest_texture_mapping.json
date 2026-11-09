@@ -1,0 +1,186 @@
+{
+  "schema_version": 1,
+  "game": "devtest",
+  "scope": "games/devtest/mods/basenodes/textures",
+  "source_pack": "Parallax PBR 64x v2.5",
+  "source_texture_root": "Parallax PBR 64x v2.5/assets/minecraft/textures",
+  "mapping_status": "candidate",
+  "verification_note": "Mappings are filename/material candidates, not visual approvals. Target paths are checked against the committed Devtest tree; source paths and _n/_s companions are checked against the archive. Null source_asset means no defensible matching source image is present in this archive. No source assets are copied or redistributed by this manifest.",
+  "mappings": [
+    {
+      "target": "mods/basenodes/textures/default_apple.png",
+      "source_asset": null,
+      "notes": "No matching apple item/block texture exists in the archive's inventoried block/entity/painting texture trees."
+    },
+    {
+      "target": "mods/basenodes/textures/default_cobble.png",
+      "source_asset": "block/cobblestone.png",
+      "notes": "Direct cobblestone material match."
+    },
+    {
+      "target": "mods/basenodes/textures/default_desert_sand.png",
+      "source_asset": "block/red_sand.png",
+      "notes": "Red sand is a close desert-sand candidate; visually review before treating as approved."
+    },
+    {
+      "target": "mods/basenodes/textures/default_desert_stone.png",
+      "source_asset": "block/sandstone.png",
+      "notes": "Sandstone is a plausible desert-stone candidate; visually review before treating as approved."
+    },
+    {
+      "target": "mods/basenodes/textures/default_dirt.png",
+      "source_asset": "block/dirt.png",
+      "notes": "Direct dirt material match."
+    },
+    {
+      "target": "mods/basenodes/textures/default_grass.png",
+      "source_asset": "block/grass_block_top.png",
+      "notes": "Grass block top is appropriate for the existing grass overlay."
+    },
+    {
+      "target": "mods/basenodes/textures/default_gravel.png",
+      "source_asset": "block/gravel.png",
+      "notes": "Direct gravel material match."
+    },
+    {
+      "target": "mods/basenodes/textures/default_ice.png",
+      "source_asset": null,
+      "notes": "No ice block base texture exists in the inventoried archive."
+    },
+    {
+      "target": "mods/basenodes/textures/default_junglegrass.png",
+      "source_asset": null,
+      "notes": "The archive has short grass but no matching junglegrass material; not substituting an unrelated plant."
+    },
+    {
+      "target": "mods/basenodes/textures/default_jungleleaves.png",
+      "source_asset": null,
+      "notes": "No jungle-leaves material exists in the archive; oak and spruce leaves are not equivalent."
+    },
+    {
+      "target": "mods/basenodes/textures/default_jungletree.png",
+      "source_asset": null,
+      "notes": "No jungle log material exists in the archive."
+    },
+    {
+      "target": "mods/basenodes/textures/default_jungletree_top.png",
+      "source_asset": null,
+      "notes": "No jungle log end-grain material exists in the archive."
+    },
+    {
+      "target": "mods/basenodes/textures/default_lava.png",
+      "source_asset": null,
+      "notes": "No suitable lava base texture exists in the archive; this animated/liquid material is not mapped."
+    },
+    {
+      "target": "mods/basenodes/textures/default_lava_flowing.png",
+      "source_asset": null,
+      "notes": "No suitable flowing-lava base texture or animated companion set exists in the archive."
+    },
+    {
+      "target": "mods/basenodes/textures/default_leaves.png",
+      "source_asset": "block/oak_leaves.png",
+      "notes": "Oak leaves candidate for Devtest's generic leaves texture."
+    },
+    {
+      "target": "mods/basenodes/textures/default_mossycobble.png",
+      "source_asset": "block/mossy_cobblestone.png",
+      "notes": "Direct mossy-cobblestone material match."
+    },
+    {
+      "target": "mods/basenodes/textures/default_pine_needles.png",
+      "source_asset": "block/spruce_leaves.png",
+      "notes": "Spruce leaves candidate for Devtest pine needles."
+    },
+    {
+      "target": "mods/basenodes/textures/default_pine_tree.png",
+      "source_asset": "block/spruce_log.png",
+      "notes": "Spruce log side candidate."
+    },
+    {
+      "target": "mods/basenodes/textures/default_pine_tree_top.png",
+      "source_asset": "block/spruce_log_top.png",
+      "notes": "Spruce log end-grain candidate."
+    },
+    {
+      "target": "mods/basenodes/textures/default_river_water.png",
+      "source_asset": null,
+      "notes": "No water or river-water base texture exists in the archive; the asset pack does not supply liquid maps."
+    },
+    {
+      "target": "mods/basenodes/textures/default_river_water_flowing.png",
+      "source_asset": null,
+      "notes": "No flowing river-water or animated liquid material exists in the archive."
+    },
+    {
+      "target": "mods/basenodes/textures/default_sand.png",
+      "source_asset": "block/sand.png",
+      "notes": "Direct sand material match."
+    },
+    {
+      "target": "mods/basenodes/textures/default_snow.png",
+      "source_asset": "block/snow.png",
+      "notes": "Snow block material candidate."
+    },
+    {
+      "target": "mods/basenodes/textures/default_snow_side.png",
+      "source_asset": "block/grass_block_snow.png",
+      "notes": "Snow-covered grass side candidate; confirm crop/tile semantics visually."
+    },
+    {
+      "target": "mods/basenodes/textures/default_stone.png",
+      "source_asset": "block/stone.png",
+      "notes": "Direct stone material match."
+    },
+    {
+      "target": "mods/basenodes/textures/default_tree.png",
+      "source_asset": "block/oak_log.png",
+      "notes": "Oak log side candidate for generic tree trunk."
+    },
+    {
+      "target": "mods/basenodes/textures/default_tree_top.png",
+      "source_asset": "block/oak_log_top.png",
+      "notes": "Oak log end-grain candidate for generic tree trunk."
+    },
+    {
+      "target": "mods/basenodes/textures/default_water.png",
+      "source_asset": null,
+      "notes": "No water base texture exists in the archive; leave transparent liquid unchanged."
+    },
+    {
+      "target": "mods/basenodes/textures/default_water_flowing.png",
+      "source_asset": null,
+      "notes": "No flowing-water or animated liquid material exists in the archive."
+    },
+    {
+      "target": "mods/basenodes/textures/dirt_with_grass/default_grass.png",
+      "source_asset": "block/grass_block_top.png",
+      "notes": "Grass block top, matching the existing overlay target."
+    },
+    {
+      "target": "mods/basenodes/textures/dirt_with_grass/default_grass_side.png",
+      "source_asset": "block/grass_block_side_overlay.png",
+      "notes": "Exact grass-side overlay candidate, rather than the opaque grass block side."
+    },
+    {
+      "target": "mods/basenodes/textures/basenodes_dirt_with_grass_bottom.png",
+      "source_asset": null,
+      "notes": "Devtest's distinguishing dirt-bottom dot has no matching archive image."
+    },
+    {
+      "target": "mods/basenodes/textures/basenodes_dirt_with_snow.png",
+      "source_asset": "block/grass_block_snow.png",
+      "notes": "Snow-covered grass block material candidate."
+    },
+    {
+      "target": "mods/basenodes/textures/basenodes_dirt_with_snow_bottom.png",
+      "source_asset": null,
+      "notes": "Devtest's distinguishing dirt-bottom dot has no matching archive image."
+    },
+    {
+      "target": "mods/basenodes/textures/basenodes_snow_sheet.png",
+      "source_asset": "block/snow.png",
+      "notes": "Snow texture candidate for the snow sheet nodebox."
+    }
+  ]
+}
