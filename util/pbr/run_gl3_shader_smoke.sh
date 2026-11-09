@@ -55,7 +55,7 @@ run_case() {
 
   # Irrlicht may fall back to a default material after a shader error; fail
   # explicitly if the PBR shader generator reports a compile/link failure.
-      if grep -Eq 'Compiling shaders for .*PBR_(NORMAL|SPECULAR|POM)' "$log"; then
+  if grep -Eiq 'generateShader\(\): failed to generate shaders for .*PBR_(NORMAL|SPECULAR|POM)|Failed to compile the .*PBR_(NORMAL|SPECULAR|POM)' "$log"; then
     echo "PBR/POM GLSL compilation or link failure detected in $name." >&2
     return 1
   fi
@@ -82,7 +82,7 @@ run_case() {
       fi
       ;;
     no_maps)
-      if grep -Eq 'Compiling shaders for .*USE_PBR_(NORMAL_MAP|SPECULAR_MAP|POM)' "$log"; then
+      if grep -Eq 'Compiling shaders for .*PBR_(NORMAL|SPECULAR|POM)' "$log"; then
         echo "Unexpected PBR shader with both maps missing." >&2
         return 1
       fi
