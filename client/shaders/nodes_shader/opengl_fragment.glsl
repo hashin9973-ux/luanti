@@ -501,31 +501,28 @@ void main(void)
 
 #ifdef USE_PBR_POM
 	// LabPBR height is inverted: alpha 1 is the surface and alpha 0 is
-	// the maximum 25% texture depth. Keep the implicit-derivative texture
-	// lookup outside divergent control flow for GLSL compatibility.
+	// the maximum 25% texture depth. Explicit gradients keep texture sampling
+	// valid even when different fragments reach the intersection at different
+	// loop iterations.
 	float layer_step = 0.25 / float(PBR_PARALLAX_SAMPLES);
 	bool pbr_pom_active = pbr_tangent_valid && pbr_view_tangent.z > 0.05;
-	float grazing_fade = pbr_pom_active ?
-			clamp((pbr_view_tangent.z - 0.05) / 0.20, 0.0, 1.0) : 0.0;
-	vec2 uv_step = (pbr_view_tangent.xy / max(pbr_view_tangent.z, 0.15)) *
-		(PBR_PARALLAX_HEIGHT_SCALE * layer_step * grazing_fade);
+	if (pbr_pom_active) {
+		float grazing_fade = clamp((pbr_view_tangent.z - 0.05) / 0.20, 0.0, 1.0);
+		vec2 uv_step = (pbr_view_tangent.xy / max(pbr_view_tangent.z, 0.15)) *
+			(PBR_PARALLAX_HEIGHT_SCALE * layer_step * grazing_fade);
+		vec2 uv_dx = duv1;
+		vec2 uv_dy = duv2;
 
-	vec2 current_uv = pbr_uv;
-	vec2 previous_uv = pbr_uv;
-	float current_layer_depth = 0.0;
-	float previous_layer_depth = 0.0;
-	float previous_surface_depth = 0.0;
-	bool pbr_pom_hit = !pbr_pom_active;
+		vec2 current_uv = pbr_uv;
+		vec2 previous_uv = pbr_uv;
+		float current_layer_depth = 0.0;
+		float previous_layer_depth = 0.0;
+		float previous_surface_depth = 0.0;
 
-	// One additional endpoint sample ensures the maximum 25% depth is
-	// intersected, including an alpha value of exactly zero.
-	for (int i = 0; i <= PBR_PARALLAX_SAMPLES; i++) {
-		// This lookup is intentionally unconditional: implicit derivatives are
-		// undefined if texture2D is only executed by some fragments.
-		float current_surface_depth =
-				(1.0 - texture2D(pbrNormalTexture, current_uv).a) * 0.25;
-
-		if (!pbr_pom_hit) {
+		// Sample one additional endpoint to cover alpha == 0 (25% depth).
+		for (int i = 0; i <= PBR_PARALLAX_SAMPLES; i++) {
+			float current_surface_depth =
+					(1.0 - textureGrad(pbrNormalTexture, current_uv, uv_dx, uv_dy).a) * 0.25;
 			float after_depth = current_surface_depth - current_layer_depth;
 			if (after_depth <= 0.0 || i == PBR_PARALLAX_SAMPLES) {
 				float before_depth = previous_surface_depth - previous_layer_depth;
@@ -534,14 +531,14 @@ void main(void)
 					float interpolation = clamp(after_depth / depth_span, 0.0, 1.0);
 					pbr_uv = mix(current_uv, previous_uv, interpolation);
 				}
-				pbr_pom_hit = true;
-			} else {
-				previous_uv = current_uv;
-				previous_layer_depth = current_layer_depth;
-				previous_surface_depth = current_surface_depth;
-				current_uv -= uv_step;
-				current_layer_depth += layer_step;
+				break;
 			}
+
+			previous_uv = current_uv;
+			previous_layer_depth = current_layer_depth;
+			previous_surface_depth = current_surface_depth;
+			current_uv -= uv_step;
+			current_layer_depth += layer_step;
 		}
 	}
 #endif
