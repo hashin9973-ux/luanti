@@ -15,6 +15,9 @@ on:
       - 'po/**.po'
       - 'util/buildbot/**'
       - 'misc/*'
+      - 'client/shaders/**'
+      - 'builtin/settingtypes.txt'
+      - 'util/pbr/**'
       - '.github/workflows/windows.yml'
   pull_request:
     paths:
@@ -29,6 +32,9 @@ on:
       - 'po/**.po'
       - 'util/buildbot/**'
       - 'misc/*'
+      - 'client/shaders/**'
+      - 'builtin/settingtypes.txt'
+      - 'util/pbr/**'
       - '.github/workflows/windows.yml'
 
 jobs:
@@ -63,9 +69,14 @@ jobs:
       - name: Runtime test
         run: |
           dest=$(mktemp -d)
+          unzip -t artifact/*.zip
           unzip -q -d "$dest" artifact/*.zip
           cd "$dest"/luanti-*-win*
           wine bin/luanti.exe --version
+
+      - name: Generate portable package checksum
+        run: |
+          sha256sum artifact/*.zip | sed 's|artifact/||' > artifact/SHA256SUMS.txt
 
       - name: Build for NSIS
         run: |
@@ -81,7 +92,9 @@ jobs:
       - uses: actions/upload-artifact@v7
         with:
           archive: false
-          path: artifact/*.zip
+          path: |
+            artifact/*.zip
+            artifact/SHA256SUMS.txt
           if-no-files-found: error
 
       - uses: actions/upload-artifact@v7
@@ -167,6 +180,16 @@ jobs:
           cpack -G ZIP -B "$env:GITHUB_WORKSPACE\Package"
           rm -r $env:GITHUB_WORKSPACE\Package\_CPack_Packages
           Get-ChildItem "$env:GITHUB_WORKSPACE\Package\*.zip" | Rename-Item -NewName { $_.Name -replace '\.zip$', '-msvc.zip' }
+
+      - name: Generate Windows package checksums
+        shell: pwsh
+        run: |
+          $files = Get-ChildItem "$env:GITHUB_WORKSPACE\Package" -Filter "*.zip"
+          $lines = foreach ($file in $files) {
+            $hash = (Get-FileHash -Algorithm SHA256 $file.FullName).Hash.ToLowerInvariant()
+            "$hash  $($file.Name)"
+          }
+          $lines | Set-Content -Encoding ascii "$env:GITHUB_WORKSPACE\Package\SHA256SUMS.txt"
 
       - name: Save vcpkg cache
         uses: actions/cache/save@v6
