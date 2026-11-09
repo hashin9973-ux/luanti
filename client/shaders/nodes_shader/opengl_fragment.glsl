@@ -6,6 +6,17 @@
 #define crackTexture texture1
 uniform sampler2D crackTexture;
 
+#ifdef USE_PBR_NORMAL_MAP
+uniform sampler2D texture2;
+#define pbrNormalTexture texture2
+#endif
+
+#ifdef USE_PBR_SPECULAR_MAP
+uniform sampler2D texture3;
+uniform vec3 pbrLightDirection;
+#define pbrSpecularTexture texture3
+#endif
+
 uniform vec3 dayLight;
 uniform lowp vec4 fogColor;
 uniform float fogDistance;
@@ -438,11 +449,92 @@ vec2 uv_repeat(vec2 v)
 void main(void)
 {
 	vec2 uv = varTexCoord.st;
+	vec2 pbr_uv = uv;
+	vec3 pbr_normal = normalize(vNormal);
+
+#ifdef USE_PBR_NORMAL_MAP
+	vec3 pbr_geometric_normal = normalize(vNormal);
+	vec3 dp1 = dFdx(worldPosition);
+	vec3 dp2 = dFdy(worldPosition);
+	vec2 duv1 = dFdx(uv);
+	vec2 duv2 = dFdy(uv);
+	float uv_determinant = duv1.x * duv2.y - duv1.y * duv2.x;
+	vec3 pbr_tangent = vec3(0.0);
+	vec3 pbr_bitangent = vec3(0.0);
+	bool pbr_tangent_valid = abs(uv_determinant) > 1e-8;
+	if (pbr_tangent_valid) {
+		float inv_determinant = 1.0 / uv_determinant;
+		pbr_tangent = normalize((dp1 * duv2.y - dp2 * duv1.y) * inv_determinant);
+		pbr_bitangent = normalize((dp2 * duv1.x - dp1 * duv2.x) * inv_determinant);
+		pbr_tangent = normalize(pbr_tangent -
+			pbr_geometric_normal * dot(pbr_geometric_normal, pbr_tangent));
+		pbr_bitangent = normalize(pbr_bitangent -
+			pbr_geometric_normal * dot(pbr_geometric_normal, pbr_bitangent) -
+			pbr_tangent * dot(pbr_tangent, pbr_bitangent));
+	}
+
+	vec3 pbr_view_world = normalize(cameraPosition - (worldPosition + cameraOffset));
+	vec3 pbr_view_tangent = vec3(
+		dot(pbr_view_world, pbr_tangent),
+		dot(pbr_view_world, pbr_bitangent),
+		dot(pbr_view_world, pbr_geometric_normal));
+
+#ifdef USE_PBR_POM
+	// LabPBR height is inverted: alpha 1 is the surface and alpha 0 is
+	// the maximum 25% texture depth. Fade POM at grazing angles.
+	if (pbr_tangent_valid && pbr_view_tangent.z > 0.05) {
+		float layer_step = 0.25 / float(PBR_PARALLAX_SAMPLES);
+		float grazing_fade = clamp((pbr_view_tangent.z - 0.05) / 0.20, 0.0, 1.0);
+		vec2 uv_step = (pbr_view_tangent.xy / max(pbr_view_tangent.z, 0.15)) *
+			(PBR_PARALLAX_HEIGHT_SCALE * layer_step * grazing_fade);
+
+		vec2 current_uv = pbr_uv;
+		vec2 previous_uv = pbr_uv;
+		float current_layer_depth = 0.0;
+		float previous_layer_depth = 0.0;
+		float current_surface_depth =
+			(1.0 - texture2D(pbrNormalTexture, current_uv).a) * 0.25;
+		float previous_surface_depth = current_surface_depth;
+
+		for (int i = 0; i < PBR_PARALLAX_SAMPLES; i++) {
+			if (current_layer_depth >= current_surface_depth)
+				break;
+			previous_uv = current_uv;
+			previous_layer_depth = current_layer_depth;
+			previous_surface_depth = current_surface_depth;
+			current_uv -= uv_step;
+			current_layer_depth += layer_step;
+			current_surface_depth =
+				(1.0 - texture2D(pbrNormalTexture, current_uv).a) * 0.25;
+		}
+
+		float after_depth = current_surface_depth - current_layer_depth;
+		float before_depth = previous_surface_depth - previous_layer_depth;
+		float depth_span = after_depth - before_depth;
+		if (abs(depth_span) > 1e-6) {
+			float interpolation = clamp(after_depth / depth_span, 0.0, 1.0);
+			pbr_uv = mix(current_uv, previous_uv, interpolation);
+		}
+	}
+#endif
+
+	vec4 pbr_normal_sample = texture2D(pbrNormalTexture, pbr_uv);
+	vec2 pbr_normal_xy = pbr_normal_sample.rg * 2.0 - 1.0;
+	// LabPBR stores DirectX (Y-down) tangent-space normals.
+	pbr_normal_xy.y = -pbr_normal_xy.y;
+	float pbr_normal_z = sqrt(max(0.0, 1.0 - dot(pbr_normal_xy, pbr_normal_xy)));
+	if (pbr_tangent_valid) {
+		pbr_normal = normalize(
+			pbr_tangent * pbr_normal_xy.x +
+			pbr_bitangent * pbr_normal_xy.y +
+			pbr_geometric_normal * pbr_normal_z);
+	}
+#endif
 
 #ifdef USE_ARRAY_TEXTURE
-	vec4 base = texture(baseTexture, vec3(uv, float(varTexLayer))).rgba;
+	vec4 base = texture(baseTexture, vec3(pbr_uv, float(varTexLayer))).rgba;
 #else
-	vec4 base = texture2D(baseTexture, uv).rgba;
+	vec4 base = texture2D(baseTexture, pbr_uv).rgba;
 #endif
 
 	// Handle transparency by discarding pixel as appropriate.
@@ -468,6 +560,12 @@ void main(void)
 	}
 
 	vec4 col = vec4(base.rgb * varColor.rgb, 1.0);
+	float pbr_shadow_visibility = 1.0;
+
+#ifdef USE_PBR_NORMAL_MAP
+	// Ambient occlusion is stored linearly in LabPBR normal-map blue.
+	col.rgb *= mix(1.0, pbr_normal_sample.b, 0.5);
+#endif
 
 #ifdef ENABLE_DYNAMIC_SHADOWS
 	// Fragment normal, can differ from vNormal which is derived from vertex normals.
@@ -525,6 +623,8 @@ void main(void)
 		}
 
 		shadow_int *= f_adj_shadow_strength;
+		pbr_shadow_visibility = 1.0 -
+			(1.0 - shadow_uncorrected) * f_adj_shadow_strength * distance_rate;
 
 		// calculate fragment color from components:
 		col.rgb =
@@ -585,6 +685,47 @@ void main(void)
 		col.rgb += 4.0 * dayLight * base.rgb * normalize(base.rgb * varColor.rgb * varColor.rgb) * f_adj_shadow_strength * pow(max(-dot(v_LightDirection, viewVec), 0.0), 4.0) * max(1.0 - shadow_uncorrected, 0.0);
 #endif
 	}
+#endif
+
+#ifdef USE_PBR_SPECULAR_MAP
+	// LabPBR specular: perceptual smoothness in R and dielectric F0 / metal
+	// classification in G. Hardcoded metal IDs are approximated by albedo F0.
+	vec4 pbr_specular_sample = texture2D(pbrSpecularTexture, pbr_uv);
+	float perceptual_smoothness = pbr_specular_sample.r;
+	float roughness = max(pow(1.0 - perceptual_smoothness, 2.0), 0.045);
+	float f0_value = clamp(pbr_specular_sample.g * (255.0 / 229.0), 0.0, 1.0);
+	float is_metal = step(230.0 / 255.0, pbr_specular_sample.g);
+	vec3 f0 = mix(vec3(f0_value), base.rgb, is_metal);
+
+	vec3 N = normalize(pbr_normal);
+	vec3 V = normalize(cameraPosition - (worldPosition + cameraOffset));
+	vec3 L = normalize(pbrLightDirection);
+	vec3 H = normalize(V + L);
+	float NoV = max(dot(N, V), 0.001);
+	float NoL = max(dot(N, L), 0.0);
+	float NoH = max(dot(N, H), 0.0);
+	float VoH = max(dot(V, H), 0.0);
+
+	if (NoL > 0.0) {
+		const float PBR_PI = 3.14159265359;
+		float alpha = roughness * roughness;
+		float alpha2 = alpha * alpha;
+		float denom = max(NoH * NoH * (alpha2 - 1.0) + 1.0, 0.001);
+		float distribution = alpha2 / (PBR_PI * denom * denom);
+		float k = (roughness + 1.0) * (roughness + 1.0) * 0.125;
+		float geometry_v = NoV / (NoV * (1.0 - k) + k);
+		float geometry_l = NoL / (NoL * (1.0 - k) + k);
+		vec3 fresnel = f0 + (1.0 - f0) * pow(1.0 - VoH, 5.0);
+		vec3 specular_brdf = distribution * geometry_v * geometry_l * fresnel /
+			max(4.0 * NoV * NoL, 0.001);
+		vec3 direct_radiance = dayLight * max(1.0 - nightRatio, 0.0);
+		col.rgb += specular_brdf * direct_radiance * NoL * pbr_shadow_visibility;
+	}
+
+	// LabPBR specular alpha uses 255 as the non-emissive sentinel.
+	float emissive = pbr_specular_sample.a >= 0.999 ? 0.0 :
+		clamp(pbr_specular_sample.a * (255.0 / 254.0), 0.0, 1.0);
+	col.rgb += base.rgb * emissive;
 #endif
 
 	// Due to a bug in some (older ?) graphics stacks (possibly in the glsl compiler ?),
