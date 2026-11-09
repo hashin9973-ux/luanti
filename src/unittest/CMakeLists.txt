@@ -32,6 +32,7 @@ set(unittest_SRCS
 	${CMAKE_CURRENT_SOURCE_DIR}/test_noise.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/test_objdef.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/test_profiler.cpp
+	${CMAKE_CURRENT_SOURCE_DIR}/test_pbr.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/test_random.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/test_sao.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/test_schematic.cpp
