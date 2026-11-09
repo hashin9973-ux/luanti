@@ -14,7 +14,7 @@ class TestPBR : public TestBase
 public:
 	TestPBR() { TestManager::registerTestModule(this); }
 	const char *getName() override { return "TestPBR"; }
-	void runTests(IGameDef *gamedef) override;
+	void runTests(IGameDef *) override;
 
 private:
 	void testCompanionTextureNames();
@@ -23,7 +23,7 @@ private:
 
 static TestPBR g_test_pbr;
 
-void TestPBR::runTests(IGameDef *gamedef)
+void TestPBR::runTests(IGameDef *)
 {
 	TEST(testCompanionTextureNames);
 	TEST(testLabPBRMaterialChannels);
