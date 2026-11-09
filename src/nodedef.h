@@ -172,6 +172,10 @@ public:
 	bool translucent_liquids;
 	bool connected_glass;
 	bool enable_minimap;
+	bool enable_pbr;
+	bool enable_pbr_parallax;
+	int pbr_parallax_samples;
+	float pbr_parallax_height_scale;
 
 	TextureSettings() = default;
 
