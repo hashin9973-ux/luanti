@@ -51,10 +51,17 @@ Write-Output "PORTABLE_FILES_CHECK=passed"
 Write-Output "PBR_SETTINGS_CHECK=passed"
 Write-Output "TEXTURE_MAPPING_MANIFEST_CHECK=passed"
 
-$versionOutput = & $exe --version 2>&1
-$versionExitCode = $LASTEXITCODE
-$versionOutput | ForEach-Object { Write-Output $_ }
-if ($versionExitCode -ne 0) {
-    throw "Packaged luanti.exe --version failed with exit code $versionExitCode"
+$stdout = Join-Path $env:RUNNER_TEMP "luanti-version.stdout.txt"
+$stderr = Join-Path $env:RUNNER_TEMP "luanti-version.stderr.txt"
+$process = Start-Process -FilePath $exe -ArgumentList @("--version") -Wait -PassThru -NoNewWindow `
+    -RedirectStandardOutput $stdout -RedirectStandardError $stderr
+if (Test-Path -LiteralPath $stdout) {
+    Get-Content -LiteralPath $stdout | ForEach-Object { Write-Output $_ }
+}
+if (Test-Path -LiteralPath $stderr) {
+    Get-Content -LiteralPath $stderr | ForEach-Object { Write-Output $_ }
+}
+if ($process.ExitCode -ne 0) {
+    throw "Packaged luanti.exe --version failed with exit code $($process.ExitCode)"
 }
 Write-Output "PORTABLE_STARTUP_TEST=passed"
