@@ -2,9 +2,12 @@
 # Inventory the user-supplied PBR archive without altering or redistributing it.
 set -euo pipefail
 
-archive="\${1:-Parallax PBR 64x v2.5.zip}"
-game_root="\${2:-games/devtest}"
-out="\${3:-build/pbr-audit}"
+archive="Parallax PBR 64x v2.5.zip"
+game_root="games/devtest"
+out="build/pbr-audit"
+if [[ $# -ge 1 ]]; then archive="$1"; fi
+if [[ $# -ge 2 ]]; then game_root="$2"; fi
+if [[ $# -ge 3 ]]; then out="$3"; fi
 mkdir -p "$out"
 
 if [[ ! -f "$archive" ]]; then
