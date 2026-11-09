@@ -2198,6 +2198,26 @@ fallback_font_path (Fallback font path) filepath fonts/DroidSansFallbackFull.ttf
 
 [**Lighting] [client]
 
+#    Enable optional LabPBR normal and specular texture maps for node materials.
+#    Textures without matching maps continue to use the default renderer.
+enable_pbr (Enable PBR material maps) bool false
+
+#    Enable view-dependent parallax occlusion mapping using the LabPBR normal-map alpha channel.
+#    Only materials with matching normal maps can use this effect.
+#
+#    Requires: enable_pbr
+enable_pbr_parallax (Enable parallax occlusion mapping) bool false
+
+#    Maximum number of POM height-field samples per fragment.
+#
+#    Requires: enable_pbr_parallax
+pbr_parallax_samples (PBR parallax samples) int 24 8 64
+
+#    POM depth multiplier. The LabPBR height channel encodes up to 25% of the texture depth.
+#
+#    Requires: enable_pbr_parallax
+pbr_parallax_height_scale (PBR parallax depth) float 0.05 0.0 0.1
+
 #    Gradient of light curve at minimum light level.
 #    Controls the contrast of the lowest light levels.
 lighting_alpha (Light curve low gradient) float 0.0 0.0 3.0
