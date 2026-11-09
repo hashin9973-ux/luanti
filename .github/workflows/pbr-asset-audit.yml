@@ -26,17 +26,21 @@ jobs:
       - name: Install image channel inspection tools
         run: |
           sudo apt-get update
-          sudo apt-get install -y imagemagick
+          sudo apt-get install -y imagemagick jq
       - name: Inventory archive and Devtest texture names
         shell: bash
         run: |
           set -euo pipefail
           bash util/pbr/inspect_assets.sh
           bash util/pbr/analyze_labpbr_channels.sh
+          bash util/pbr/validate_texture_mapping.sh
       - name: Upload source inventory
         uses: actions/upload-artifact@v7
         with:
           name: pbr-asset-inventory
-          path: build/pbr-audit/
+          path: |
+            build/pbr-audit/
+            build/pbr-channel-audit/
+            build/pbr-mapping-audit/
           if-no-files-found: error
           retention-days: 30
