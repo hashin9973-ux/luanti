@@ -161,8 +161,57 @@ jobs:
           test -s "$texture_dir/default_stone.png"
           test -s "$texture_dir/default_stone_n.png"
           test -s "$texture_dir/default_stone_s.png"
-          clientconf=$'video_driver=opengl3\nenable_pbr=true\nenable_pbr_parallax=true\npbr_parallax_samples=32\npbr_parallax_height_scale=0.05' \
-            xvfb-run ./util/test_singleplayer.sh
+          mkdir -p build
+          runtime_log=build/pbr-gl3-runtime.log
+          set +e
+          clientconf=
+
+  # Build with prometheus-cpp (server-only), also runs on ARM64
+  clang_prometheus_arm:
+    name: "clang (with Prometheus, ARM64)"
+    runs-on: ubuntu-24.04-arm
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install deps
+        run: |
+          source ./util/ci/common.sh
+          install_linux_deps --headless clang libluajit-5.1-dev
+
+      - name: Build prometheus-cpp
+        run: ./util/ci/build_prometheus_cpp.sh
+
+      - name: Build
+        run: |
+          ./util/ci/build.sh
+        env:
+          CC: clang
+          CXX: clang++
+          CMAKE_FLAGS: "-DENABLE_PROMETHEUS=1 -DBUILD_CLIENT=0 -DENABLE_CURSES=0"
+
+      - name: Test
+        run: |
+          ./bin/luantiserver --run-unittests
+video_driver=opengl3\nenable_pbr=true\nenable_pbr_parallax=true\npbr_parallax_samples=32\npbr_parallax_height_scale=0.05' \
+            xvfb-run ./util/test_singleplayer.sh 2>&1 | tee "$runtime_log"
+          runtime_status=${PIPESTATUS[0]}
+          set -e
+
+          # Luanti may fall back to a default material after a shader error;
+          # require the actual PBR shader variant to compile and link.
+          if grep -Eiq 'generateShader\(\): failed to generate shaders for .*USE_PBR_(NORMAL_MAP|SPECULAR_MAP|POM)|Failed to compile the .*USE_PBR_' "$runtime_log"; then
+            echo "PBR/POM GLSL compilation or link failure detected."
+            exit 1
+          fi
+          exit "$runtime_status"
+
+      - name: Upload PBR/POM GL3 runtime log
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: pbr-pom-gl3-runtime-log
+          path: build/pbr-gl3-runtime.log
+          if-no-files-found: ignore
+          retention-days: 14
 
   # Build with prometheus-cpp (server-only), also runs on ARM64
   clang_prometheus_arm:
