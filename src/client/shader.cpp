@@ -954,7 +954,7 @@ void ShaderFeatures::setConstants(ShaderConstants &consts) const
 		consts["USE_PBR_SPECULAR_MAP"] = 1;
 	if (pbr_parallax && pbr_normal_map) {
 		consts["USE_PBR_POM"] = 1;
-		consts["PBR_PARALLAX_SAMPLES"] = rangelim(pbr_parallax_samples, 8, 64);
+		consts["PBR_PARALLAX_SAMPLES"] = std::clamp(pbr_parallax_samples, 8, 64);
 		consts["PBR_PARALLAX_HEIGHT_SCALE"] =
 			std::clamp(pbr_parallax_height_scale, 0.0f, 0.1f);
 	}
