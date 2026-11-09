@@ -69,8 +69,11 @@ available, the fragment shader:
 
 The maximum encoded LabPBR height depth is 25% of the texture depth. The
 configured depth scale controls how much of that range is used. POM fades
-toward grazing angles to limit excessive UV displacement. It is not applied
-when the normal map is missing or fragment derivatives are unsupported.
+toward grazing angles to limit excessive UV displacement. POM requires GLSL
+1.30 or newer (desktop GL3) or GLSL ES 3.00 because its ray traversal uses
+explicit texture gradients; normal mapping can remain enabled on older
+derivative-capable programmable backends. POM is not applied when the normal
+map is missing or the backend lacks the required shader language features.
 
 ## Settings
 
