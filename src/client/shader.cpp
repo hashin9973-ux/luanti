@@ -416,8 +416,9 @@ public:
 			return false;
 		if (driver->getDriverType() == video::EDT_OGLES2)
 			return m_have_glsl3;
-		// Desktop GLSL 1.20 and newer have fragment derivatives.
-		return true;
+		// Fragment derivatives are used only with an active programmable
+		// shader pipeline. Desktop GLSL 1.20 and newer provide them.
+		return m_fully_programmable;
 	}
 
 private:
