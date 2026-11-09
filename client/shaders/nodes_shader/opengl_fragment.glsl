@@ -543,7 +543,13 @@ void main(void)
 	}
 #endif
 
+	// POM displaces UVs in fragment-dependent control flow. Use explicit
+	// gradients for every lookup using those UVs, not implicit derivatives.
+#ifdef USE_PBR_POM
+	vec4 pbr_normal_sample = textureGrad(pbrNormalTexture, pbr_uv, duv1, duv2);
+#else
 	vec4 pbr_normal_sample = texture2D(pbrNormalTexture, pbr_uv);
+#endif
 	vec2 pbr_normal_xy = pbr_normal_sample.rg * 2.0 - 1.0;
 	// LabPBR stores DirectX (Y-down) tangent-space normals.
 	pbr_normal_xy.y = -pbr_normal_xy.y;
@@ -556,10 +562,18 @@ void main(void)
 	}
 #endif
 
-#ifdef USE_ARRAY_TEXTURE
-	vec4 base = texture(baseTexture, vec3(pbr_uv, float(varTexLayer))).rgba;
+#ifdef USE_PBR_POM
+	#ifdef USE_ARRAY_TEXTURE
+	vec4 base = textureGrad(baseTexture, vec3(pbr_uv, float(varTexLayer)), duv1, duv2).rgba;
+	#else
+	vec4 base = textureGrad(baseTexture, pbr_uv, duv1, duv2).rgba;
+	#endif
 #else
+	#ifdef USE_ARRAY_TEXTURE
+	vec4 base = texture(baseTexture, vec3(pbr_uv, float(varTexLayer))).rgba;
+	#else
 	vec4 base = texture2D(baseTexture, pbr_uv).rgba;
+	#endif
 #endif
 
 	// Handle transparency by discarding pixel as appropriate.
@@ -728,7 +742,11 @@ void main(void)
 #ifdef USE_PBR_SPECULAR_MAP
 	// LabPBR specular: perceptual smoothness in R and dielectric F0 / metal
 	// classification in G. Hardcoded metal IDs are approximated by albedo F0.
+#ifdef USE_PBR_POM
+	vec4 pbr_specular_sample = textureGrad(pbrSpecularTexture, pbr_uv, duv1, duv2);
+#else
 	vec4 pbr_specular_sample = texture2D(pbrSpecularTexture, pbr_uv);
+#endif
 	float perceptual_smoothness = pbr_specular_sample.r;
 	float roughness = max(pow(1.0 - perceptual_smoothness, 2.0), 0.045);
 	// LabPBR G stores dielectric F0 directly (0..229 / 255); 230..255
