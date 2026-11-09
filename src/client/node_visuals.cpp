@@ -22,6 +22,7 @@ struct TileAttribContext {
 	video::SColor base_color;
 	const TextureSettings &tsettings;
 	bool supports_fragment_derivatives;
+	bool supports_parallax_occlusion;
 };
 
 using GetShaderCallback = std::function<u32 /* shader id */ (
@@ -212,7 +213,8 @@ static void fillTileAttribs(TileLayer *layer, TileAttribContext context,
 	if (layer->texture) {
 		const bool has_normal_map = layer->normal_texture != nullptr;
 		const bool has_specular_map = layer->specular_texture != nullptr;
-		const bool use_parallax = tsettings.enable_pbr_parallax && has_normal_map;
+		const bool use_parallax = tsettings.enable_pbr_parallax &&
+				has_normal_map && context.supports_parallax_occlusion;
 		layer->shader_id = get_shader(layer->texture->getType() == video::ETT_2D_ARRAY,
 				has_normal_map, has_specular_map, use_parallax);
 	}
@@ -455,7 +457,8 @@ void NodeVisuals::updateTextures(ContentFeatures &f, ITextureSource *tsrc,
 	// Tiles (fill in f->tiles[])
 	bool any_polygon_offset = false;
 	TileAttribContext tac{tsrc, texture_pool, color, tsettings,
-			shdsrc->supportsFragmentShaderDerivatives()};
+			shdsrc->supportsFragmentShaderDerivatives(),
+			shdsrc->supportsParallaxOcclusionMapping()};
 
 	for (u16 j = 0; j < 6; j++) {
 		tiles[j].world_aligned = isWorldAligned(tdef[j].align_style,
