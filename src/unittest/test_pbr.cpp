@@ -59,9 +59,10 @@ void TestPBR::testLabPBRMaterialChannels()
 	UASSERT(!labpbr::isConductor(229));
 	UASSERT(labpbr::isConductor(230));
 	UASSERT(labpbr::isConductor(255));
-	UASSERT(std::fabs(labpbr::decodeDielectricF0(0) - 0.02f) < 1e-6f);
+	UASSERT(labpbr::decodeDielectricF0(0) == 0.0f);
 	UASSERT(std::fabs(labpbr::decodeDielectricF0(229) -
 			229.0f / 255.0f) < 1e-6f);
+	UASSERT(labpbr::decodeDielectricF0(255) <= 229.0f / 255.0f);
 
 	// AO is linear; normal-map alpha encodes zero-to-25% depth in reverse.
 	UASSERT(labpbr::decodeAmbientOcclusion(0) == 0.0f);
