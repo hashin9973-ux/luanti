@@ -713,7 +713,7 @@ void main(void)
 	// denotes a conductor. Use albedo as the conductor F0 fallback.
 	float f0_value = clamp(pbr_specular_sample.g, 0.02, 0.9);
 	float is_metal = step(230.0 / 255.0, pbr_specular_sample.g);
-	vec3 f0 = mix(vec3(f0_value), base.rgb * varColor.rgb, is_metal);
+	vec3 f0 = mix(vec3(f0_value), base.rgb, is_metal);
 	// Conductors have no diffuse base component; their albedo tints reflection.
 	col.rgb *= 1.0 - is_metal;
 
