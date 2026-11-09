@@ -154,8 +154,11 @@ jobs:
           texture_dir=games/devtest/mods/basenodes/textures
           archive="Parallax PBR 64x v2.5.zip"
           asset_root="Parallax PBR 64x v2.5/assets/minecraft/textures/block"
+          # Use a dimension-matched 64x64 albedo and its LabPBR companions.
+          unzip -p "$archive" "$asset_root/stone.png" > "$texture_dir/default_stone.png"
           unzip -p "$archive" "$asset_root/stone_n.png" > "$texture_dir/default_stone_n.png"
           unzip -p "$archive" "$asset_root/stone_s.png" > "$texture_dir/default_stone_s.png"
+          test -s "$texture_dir/default_stone.png"
           test -s "$texture_dir/default_stone_n.png"
           test -s "$texture_dir/default_stone_s.png"
           clientconf=$'video_driver=opengl3\nenable_pbr=true\nenable_pbr_parallax=true\npbr_parallax_samples=32\npbr_parallax_height_scale=0.05' \
