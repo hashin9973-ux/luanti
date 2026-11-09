@@ -108,13 +108,18 @@ corresponding Devtest material.
 
 ## Supplied texture archive and redistribution
 
-The supplied `Parallax PBR 64x v2.5.zip` is inventoried by CI. The archive
-inventory did not find an explicit license or attribution file. Therefore the
-engine code does not copy those source images into Devtest or Windows release
-packages. Verify the pack's redistribution terms and include any required
-notices before adding its artwork to a distributable build. The mapping
-manifest records source candidates and missing matches without redistributing
-the artwork itself.
+The supplied `Parallax PBR 64x v2.5.zip` is inventoried by CI. Its
+`shaders/lib/brdf/labPBR.glsl` file contains a copyright notice pointing to
+RRe36's Product License and Terms of Use:
+https://rre36.com/copyright-license
+
+That published license allows private modifications and certain media
+showcases, but requires explicit permission to publicly redistribute the
+product or parts of it, and to incorporate parts into another original
+product. Therefore the source textures are not copied into Devtest or Windows
+release packages. Obtain explicit permission from the author before adding
+these textures to a distributable Luanti build. The mapping manifest records
+candidate source names and missing matches without redistributing the artwork.
 
 ## Known limitations
 
