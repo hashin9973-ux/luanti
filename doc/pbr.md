@@ -108,7 +108,10 @@ or absence of all rendering artifacts.
 The PBR asset-audit workflow inventories source image/map paths, checks
 manifest targets and sidecar availability, and analyzes packed channel data.
 Its report is a mapping audit, not a claim that every source image has a
-corresponding Devtest material.
+corresponding Devtest material. The candidate mapping is
+published in [the Devtest texture mapping manifest](devtest_texture_mapping.json).
+
+
 
 ## Supplied texture archive and redistribution
 
