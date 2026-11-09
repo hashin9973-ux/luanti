@@ -803,7 +803,21 @@ void ShaderSource::generateShader(ShaderInfo &shaderinfo)
 
 	/// Unique name of this shader, for debug/logging
 	std::string log_name = name;
+	// Keep a compact feature summary ahead of tuning constants so important
+	// shader variants remain identifiable even when the debug name is clipped.
+	auto append_feature = [&] (const char *constant, const char *label) {
+		if (input_const.find(constant) != input_const.end())
+			log_name.append(" ").append(label);
+	};
+	append_feature("USE_PBR_NORMAL_MAP", "PBR_NORMAL");
+	append_feature("USE_PBR_SPECULAR_MAP", "PBR_SPECULAR");
+	append_feature("USE_PBR_POM", "PBR_POM");
+
 	for (auto &it : input_const) {
+		if (it.first == "USE_PBR_NORMAL_MAP" ||
+				it.first == "USE_PBR_SPECULAR_MAP" ||
+				it.first == "USE_PBR_POM")
+			continue;
 		if (log_name.size() > 60) { // it shouldn't be too long
 			log_name.append("...");
 			break;
