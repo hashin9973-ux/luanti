@@ -166,12 +166,12 @@ jobs:
           set +e
           clientconf=$'video_driver=opengl3\nenable_pbr=true\nenable_pbr_parallax=true\npbr_parallax_samples=32\npbr_parallax_height_scale=0.05' \
             xvfb-run ./util/test_singleplayer.sh 2>&1 | tee "$runtime_log"
-          runtime_status=\${PIPESTATUS[0]}
+          runtime_status=${PIPESTATUS[0]}
           set -e
 
           # Luanti may fall back to a default material after a shader error;
           # require the actual PBR shader variant to compile and link.
-          if grep -Eiq 'generateShader\\(\\): failed to generate shaders for .*USE_PBR_(NORMAL_MAP|SPECULAR_MAP|POM)|Failed to compile the .*USE_PBR_' "$runtime_log"; then
+          if grep -Eiq 'generateShader\(\): failed to generate shaders for .*USE_PBR_(NORMAL_MAP|SPECULAR_MAP|POM)|Failed to compile the .*USE_PBR_' "$runtime_log"; then
             echo "PBR/POM GLSL compilation or link failure detected."
             exit 1
           fi
