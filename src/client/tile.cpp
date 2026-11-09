@@ -21,16 +21,15 @@ video::ITexture *AnimationInfo::getTexture(float animation_time) const
 void AnimationInfo::updateTexture(video::SMaterial &material, float animation_time)
 {
 	video::ITexture *texture = getTexture(animation_time);
-	if (texture) {
+	if (texture)
 		material.setTexture(0, texture);
-	material.setTexture(2, normal_texture);
-	material.setTexture(3, specular_texture);
-	}
 }
 
 void TileLayer::applyMaterialOptions(video::SMaterial &material, int layer) const
 {
 	material.setTexture(0, texture);
+	material.setTexture(2, normal_texture);
+	material.setTexture(3, specular_texture);
 
 	material.BackfaceCulling = (material_flags & MATERIAL_FLAG_BACKFACE_CULLING) != 0;
 	if (!(material_flags & MATERIAL_FLAG_TILEABLE_HORIZONTAL)) {
