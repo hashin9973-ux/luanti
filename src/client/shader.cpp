@@ -421,6 +421,16 @@ public:
 		return m_fully_programmable;
 	}
 
+	bool supportsParallaxOcclusionMapping() const override
+	{
+		auto *driver = RenderingEngine::get_video_driver();
+		if (!supportsFragmentShaderDerivatives())
+			return false;
+		// Explicit textureGrad sampling requires GLSL 1.30+ (desktop GL3 uses
+		// GLSL 1.50) or GLSL ES 3.00. Keep POM off on older GLSL backends.
+		return driver->getDriverType() == video::EDT_OPENGL3 || m_have_glsl3;
+	}
+
 private:
 
 	// The id of the thread that is allowed to use irrlicht directly
