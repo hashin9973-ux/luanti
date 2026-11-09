@@ -25,7 +25,7 @@ while IFS= read -r -d '' normal; do
   rel="$(printf '%s' "$normal" | sed "s|^$tmp/||")"
   stem="$(printf '%s' "$rel" | sed 's/_n\.png$//')"
   base="$tmp/$stem.png"
-  spec="$tmp\${stem}_s.png"
+  spec="$tmp/$stem"_s.png
 
   normal_channels="$(identify -format '%[channels]' "$normal")"
   normal_dimensions="$(identify -format '%wx%h' "$normal")"
