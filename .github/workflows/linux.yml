@@ -146,6 +146,47 @@ jobs:
         run: |
           clientconf="video_driver=opengl3" xvfb-run ./util/test_singleplayer.sh
 
+      # Extract one licensed/available test material into the ephemeral CI workspace.
+      # The archive is not copied into the package or committed to the repository.
+      - name: PBR/POM runtime shader test (GL3)
+        run: |
+          set -euo pipefail
+          texture_dir=games/devtest/mods/basenodes/textures
+          archive="Parallax PBR 64x v2.5.zip"
+          asset_root="Parallax PBR 64x v2.5/assets/minecraft/textures/block"
+          unzip -p "$archive" "$asset_root/stone_n.png" > "$texture_dir/default_stone_n.png"
+          unzip -p "$archive" "$asset_root/stone_s.png" > "$texture_dir/default_stone_s.png"
+          test -s "$texture_dir/default_stone_n.png"
+          test -s "$texture_dir/default_stone_s.png"
+          clientconf=
+  # Build with prometheus-cpp (server-only), also runs on ARM64
+  clang_prometheus_arm:
+    name: "clang (with Prometheus, ARM64)"
+    runs-on: ubuntu-24.04-arm
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install deps
+        run: |
+          source ./util/ci/common.sh
+          install_linux_deps --headless clang libluajit-5.1-dev
+
+      - name: Build prometheus-cpp
+        run: ./util/ci/build_prometheus_cpp.sh
+
+      - name: Build
+        run: |
+          ./util/ci/build.sh
+        env:
+          CC: clang
+          CXX: clang++
+          CMAKE_FLAGS: "-DENABLE_PROMETHEUS=1 -DBUILD_CLIENT=0 -DENABLE_CURSES=0"
+
+      - name: Test
+        run: |
+          ./bin/luantiserver --run-unittests
+video_driver=opengl3\nenable_pbr=true\nenable_pbr_parallax=true\npbr_parallax_samples=32\npbr_parallax_height_scale=0.05' \
+            xvfb-run ./util/test_singleplayer.sh
+
   # Build with prometheus-cpp (server-only), also runs on ARM64
   clang_prometheus_arm:
     name: "clang (with Prometheus, ARM64)"
