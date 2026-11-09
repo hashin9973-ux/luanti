@@ -67,6 +67,13 @@ awk -F, '
   }
 ' "$csv" > "$out/channel-summary.txt"
 
+awk -F, 'NR > 1 && ($6 + 0) - ($5 + 0) > 0.001 {
+  path=$1
+  sub(/^"/, "", path)
+  sub(/"$/, "", path)
+  print path
+}' "$csv" > "$out/height-alpha-candidates.txt"
+
 {
   echo "Source archive: $archive"
   echo "Interpretation: LabPBR channel compatibility is inferred, not declared."
