@@ -62,21 +62,21 @@ run_case() {
 
   case "$expected" in
     full)
-      grep -Eq 'Compiling shaders for .*USE_PBR_NORMAL_MAP' "$log"
-      grep -Eq 'Compiling shaders for .*USE_PBR_SPECULAR_MAP' "$log"
-      grep -Eq 'Compiling shaders for .*USE_PBR_POM' "$log"
+      grep -Eq 'Compiling shaders for .*PBR_NORMAL' "$log"
+      grep -Eq 'Compiling shaders for .*PBR_SPECULAR' "$log"
+      grep -Eq 'Compiling shaders for .*PBR_POM' "$log"
       ;;
     normal_only)
-      grep -Eq 'Compiling shaders for .*USE_PBR_NORMAL_MAP' "$log"
-      grep -Eq 'Compiling shaders for .*USE_PBR_POM' "$log"
-      if grep -Eq 'Compiling shaders for .*USE_PBR_SPECULAR_MAP' "$log"; then
+      grep -Eq 'Compiling shaders for .*PBR_NORMAL' "$log"
+      grep -Eq 'Compiling shaders for .*PBR_POM' "$log"
+      if grep -Eq 'Compiling shaders for .*PBR_SPECULAR' "$log"; then
         echo "Unexpected specular-map shader in normal-only case." >&2
         return 1
       fi
       ;;
     specular_only)
-      grep -Eq 'Compiling shaders for .*USE_PBR_SPECULAR_MAP' "$log"
-      if grep -Eq 'Compiling shaders for .*USE_PBR_NORMAL_MAP|Compiling shaders for .*USE_PBR_POM' "$log"; then
+      grep -Eq 'Compiling shaders for .*PBR_SPECULAR' "$log"
+      if grep -Eq 'Compiling shaders for .*PBR_NORMAL|Compiling shaders for .*PBR_POM' "$log"; then
         echo "Unexpected normal/POM shader in specular-only case." >&2
         return 1
       fi
