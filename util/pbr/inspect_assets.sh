@@ -51,7 +51,91 @@ grep -E '^mods/basenodes/textures/.*[.](png|tga|jpg|jpeg|bmp|webp)$' "$out/devte
 grep -Ei '(^|/)(license|licence|copying|copyright|readme|credits|notice)([.][^/]*)?$' "$out/archive-files.txt" > "$out/archive-license-files.txt" || true
 
 : > "$out/texture-properties-files.txt"
-grep -Ei '(^|/)texture[.]properties$' "$out/archive-files.txt" > "$out/texture-properties-files.txt" || true
+grep -Ei '(^|/)texture[.]properties
+grep -Ei '(_n|_s)[.](png|tga|jpg|jpeg|bmp|webp)$' "$out/archive-files.txt" > "$out/normal-specular-files.txt" || true
+
+: > "$out/related-source-base-images.txt"
+grep -Ei '/(apple|ice|jungle|lava|water|snow|grass|oak|spruce|sand|stone|cobblestone|gravel|leaves|log|planks|ore|dirt)[^/]*[.](png|tga|jpg|jpeg)$' "$out/archive-base-images.txt" > "$out/related-source-base-images.txt" || true
+
+{
+  echo "Archive: $archive"
+  echo "SHA-256: $(sha256sum "$archive" | awk '{print $1}')"
+  echo "Archive entries: $(wc -l < "$out/archive-files.txt")"
+  echo
+  cat "$out/archive-summary.txt"
+  echo
+  echo "Potential standalone license/attribution entries:"
+  cat "$out/archive-license-files.txt"
+  echo
+  echo "Embedded license/reference files:"
+  cat "$out/archive-license-references.txt"
+  echo
+  echo "PBR format metadata files:"
+  cat "$out/texture-properties-files.txt"
+  while IFS= read -r path; do
+    echo "--- $path"
+    unzip -p "$archive" "$path"
+    echo
+  done < "$out/texture-properties-files.txt"
+  echo
+  echo "Related source base-color image filenames:"
+  cat "$out/related-source-base-images.txt"
+  echo
+  echo "First 100 normal/specular map paths:"
+  head -n 100 "$out/normal-specular-files.txt"
+  echo
+  echo "Devtest basenodes texture images:"
+  cat "$out/devtest-basenodes-textures.txt"
+} > "$out/report.txt"
+
+cat "$out/report.txt"
+ "$out/archive-files.txt" > "$out/texture-properties-files.txt" || true
+
+# Also surface license references embedded in shader/source notices, not only
+# standalone LICENSE/NOTICE files.
+: > "$out/archive-license-references.txt"
+while IFS= read -r path; do
+  [[ -n "$path" ]] || continue
+  if unzip -p "$archive" "$path" 2>/dev/null |
+      grep -Eiq 'rre36[.]com/copyright-license|All Rights Reserved|redistribut(e|ion)|explicit permission'; then
+    printf '%s\n' "$path" >> "$out/archive-license-references.txt"
+  fi
+done < <(grep -Ei '[.](glsl|txt|md|json|properties)
+grep -Ei '(_n|_s)[.](png|tga|jpg|jpeg|bmp|webp)$' "$out/archive-files.txt" > "$out/normal-specular-files.txt" || true
+
+: > "$out/related-source-base-images.txt"
+grep -Ei '/(apple|ice|jungle|lava|water|snow|grass|oak|spruce|sand|stone|cobblestone|gravel|leaves|log|planks|ore|dirt)[^/]*[.](png|tga|jpg|jpeg)$' "$out/archive-base-images.txt" > "$out/related-source-base-images.txt" || true
+
+{
+  echo "Archive: $archive"
+  echo "SHA-256: $(sha256sum "$archive" | awk '{print $1}')"
+  echo "Archive entries: $(wc -l < "$out/archive-files.txt")"
+  echo
+  cat "$out/archive-summary.txt"
+  echo
+  echo "Potential license/attribution entries:"
+  cat "$out/archive-license-files.txt"
+  echo
+  echo "PBR format metadata files:"
+  cat "$out/texture-properties-files.txt"
+  while IFS= read -r path; do
+    echo "--- $path"
+    unzip -p "$archive" "$path"
+    echo
+  done < "$out/texture-properties-files.txt"
+  echo
+  echo "Related source base-color image filenames:"
+  cat "$out/related-source-base-images.txt"
+  echo
+  echo "First 100 normal/specular map paths:"
+  head -n 100 "$out/normal-specular-files.txt"
+  echo
+  echo "Devtest basenodes texture images:"
+  cat "$out/devtest-basenodes-textures.txt"
+} > "$out/report.txt"
+
+cat "$out/report.txt"
+ "$out/archive-files.txt")
 
 : > "$out/normal-specular-files.txt"
 grep -Ei '(_n|_s)[.](png|tga|jpg|jpeg|bmp|webp)$' "$out/archive-files.txt" > "$out/normal-specular-files.txt" || true
