@@ -187,7 +187,11 @@ static void fillTileAttribs(TileLayer *layer, TileAttribContext context,
 			if (map_name.empty() || !tsrc->isKnownSourceImage(map_name))
 				return;
 			if (tsrc->needFilterForMesh())
-				map_name += ITextureSource::FILTER_FOR_MESH;
+				map_name += ITextureSource::FILTER_FOR_MESH_PBR;
+			// PBR companions must match the filtered base texture dimensions.
+			if (tsrc->getTextureDimensions(map_name) !=
+					tsrc->getTextureDimensions(texture_image))
+				return;
 			*texture = tsrc->getTexture(map_name, texture_id);
 		};
 
