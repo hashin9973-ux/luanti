@@ -1395,7 +1395,7 @@ bool ImageSource::generateImagePart(std::string_view part_of_name,
 			/* Packed PBR maps store height/emission in alpha, not transparency.
 			 * Their alpha must remain untouched. Ordinary color textures still
 			 * need transparent-pixel cleanup to avoid color fringes. */
-			const bool pbr_data = str_starts_with(part_of_name, "applyfiltersformesh_pbr");
+			const bool pbr_data = str_starts_with(part_of_name, "[applyfiltersformesh_pbr");
 			if (!pbr_data && (m_setting_mipmap || m_setting_bilinear_filter ||
 				m_setting_trilinear_filter || m_setting_anisotropic_filter)) {
 				/* Note: in theory we should pass either 0 or 127 depending on
