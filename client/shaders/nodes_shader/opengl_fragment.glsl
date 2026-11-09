@@ -467,13 +467,30 @@ void main(void)
 	bool pbr_tangent_valid = abs(uv_determinant) > 1e-8;
 	if (pbr_tangent_valid) {
 		float inv_determinant = 1.0 / uv_determinant;
-		pbr_tangent = normalize((dp1 * duv2.y - dp2 * duv1.y) * inv_determinant);
-		pbr_bitangent = normalize((dp2 * duv1.x - dp1 * duv2.x) * inv_determinant);
-		pbr_tangent = normalize(pbr_tangent -
-			pbr_geometric_normal * dot(pbr_geometric_normal, pbr_tangent));
-		pbr_bitangent = normalize(pbr_bitangent -
-			pbr_geometric_normal * dot(pbr_geometric_normal, pbr_bitangent) -
-			pbr_tangent * dot(pbr_tangent, pbr_bitangent));
+		vec3 tangent_raw = (dp1 * duv2.y - dp2 * duv1.y) * inv_determinant;
+		vec3 bitangent_raw = (dp2 * duv1.x - dp1 * duv2.x) * inv_determinant;
+		float tangent_length_sq = dot(tangent_raw, tangent_raw);
+		if (tangent_length_sq > 1e-16) {
+			pbr_tangent = tangent_raw * inversesqrt(tangent_length_sq);
+			pbr_tangent -= pbr_geometric_normal *
+				dot(pbr_geometric_normal, pbr_tangent);
+			float orthogonal_tangent_length_sq = dot(pbr_tangent, pbr_tangent);
+			if (orthogonal_tangent_length_sq > 1e-16) {
+				pbr_tangent *= inversesqrt(orthogonal_tangent_length_sq);
+				pbr_bitangent = bitangent_raw -
+					pbr_geometric_normal * dot(pbr_geometric_normal, bitangent_raw) -
+					pbr_tangent * dot(pbr_tangent, bitangent_raw);
+				float bitangent_length_sq = dot(pbr_bitangent, pbr_bitangent);
+				if (bitangent_length_sq > 1e-16)
+					pbr_bitangent *= inversesqrt(bitangent_length_sq);
+				else
+					pbr_tangent_valid = false;
+			} else {
+				pbr_tangent_valid = false;
+			}
+		} else {
+			pbr_tangent_valid = false;
+		}
 	}
 
 	vec3 pbr_view_world = normalize(cameraPosition - (worldPosition + cameraOffset));
