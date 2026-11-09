@@ -91,6 +91,13 @@ static void fillTileAttribs(TileLayer *layer, TileAttribContext context,
 	auto *tsrc = context.tsrc;
 	const auto &tsettings = context.tsettings;
 
+	// Clear optional material state before resolving this tile. Some node
+	// definitions are rebuilt when texture settings or media change.
+	layer->normal_texture = nullptr;
+	layer->specular_texture = nullptr;
+	layer->normal_texture_id = 0;
+	layer->specular_texture_id = 0;
+
 	std::string texture_image;
 	if (!tiledef.name.empty()) {
 		texture_image = tiledef.name;
