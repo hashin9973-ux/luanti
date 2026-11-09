@@ -6,6 +6,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstddef>
 #include <cstdint>
 #include <string>
 #include <string_view>
@@ -28,8 +29,8 @@ inline bool getCompanionTextureName(std::string_view base_image,
 			(suffix != "_n" && suffix != "_s"))
 		return false;
 
-	const size_t slash = base_image.find_last_of("/\\");
-	const size_t extension = base_image.find_last_of('.');
+	const std::size_t slash = base_image.find_last_of("/\\");
+	const std::size_t extension = base_image.find_last_of('.');
 	if (extension == std::string_view::npos ||
 			(slash != std::string_view::npos && extension < slash) ||
 			extension == 0)
