@@ -33,7 +33,7 @@ elseif mode == "pbr_visual" then
 			core.log("error", "[pbr_visual] Unable to write " .. path .. ": " .. tostring(err))
 			return false
 		end
-		file:write("ok\\n")
+		file:write("ok\n")
 		file:close()
 		return true
 	end
@@ -76,6 +76,7 @@ elseif mode == "pbr_visual" then
 				for x = -8, 8 do
 					for y = -4, 4 do
 						core.set_node({x = x, y = y, z = 7}, {name = "basenodes:stone"})
+						core.set_node({x = x, y = y, z = -8}, {name = "basenodes:stone"})
 					end
 				end
 				for x = -8, 8 do
@@ -92,11 +93,11 @@ elseif mode == "pbr_visual" then
 
 				core.set_timeofday(0.5)
 				player:set_pos({x = 0, y = 0, z = 0})
-				player:set_look_horizontal(0.35)
+				player:set_look_horizontal(0.8)
 				player:set_look_vertical(0)
 				player:set_physics_override({speed = 0, jump = 0, gravity = 0})
 
-				core.after(2, function()
+				core.after(3, function()
 					if write_marker(ready_path) then
 						wait_for_capture()
 					end

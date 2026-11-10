@@ -26,7 +26,7 @@ capture_scene() {
   local output="$2"
   local name="$3"
   local client_config
-  client_config=$(printf 'video_driver=opengl3\nenable_pbr=true\nenable_pbr_parallax=%s\npbr_parallax_samples=32\npbr_parallax_height_scale=0.05\nenable_dynamic_shadows=false\nenable_auto_exposure=false\nenable_bloom=false\nenable_volumetric_lighting=false\nenable_water_reflections=false\nantialiasing=none\nnode_highlighting=none\nhelper_mode=pbr_visual' "$parallax")
+  client_config=$(printf 'video_driver=opengl3\nenable_pbr=true\nenable_pbr_parallax=%s\npbr_parallax_samples=32\npbr_parallax_height_scale=0.1\nenable_dynamic_shadows=false\nenable_auto_exposure=false\nenable_bloom=false\nenable_volumetric_lighting=false\nenable_water_reflections=false\nantialiasing=none\nnode_highlighting=none\nhelper_mode=pbr_visual' "$parallax")
 
   echo "=== PBR POM visual capture: $name ==="
   LUANTI_VISUAL_CAPTURE="$output" clientconf="$client_config" xvfb-run -a ./util/test_singleplayer.sh 2>&1 | tee "$log_dir/pom-visual-$name.log"
@@ -38,7 +38,7 @@ capture_scene true "$log_dir/pom-enabled.png" enabled
 # Ignore the HUD/window border and compare the central stone-wall region only.
 # ImageMagick compare exits 1 for different images; that is the expected result.
 set +e
-metric_output=$(compare -metric AE -extract 256x160+64+48 \
+metric_output=$(compare -metric AE -extract 448x320+96+80 \
   "$log_dir/pom-disabled.png" "$log_dir/pom-enabled.png" \
   "$log_dir/pom-difference.png" 2>&1)
 compare_status=$?

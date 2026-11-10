@@ -51,6 +51,7 @@ if [[ -n "${LUANTI_VISUAL_CAPTURE:-}" ]]; then
 		wait "$game_pid" 2>/dev/null || true
 		exit 1
 	fi
+	sleep 1
 	if ! import -window root "$LUANTI_VISUAL_CAPTURE"; then
 		echo "Unable to capture the PBR visual test framebuffer."
 		kill "$game_pid" 2>/dev/null || true
