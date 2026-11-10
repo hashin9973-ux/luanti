@@ -115,12 +115,16 @@ jobs:
 
       - uses: actions/upload-artifact@v7
         with:
+          name: mingw-${{ matrix.config.bits }}-portable
           archive: true
-          path: artifact/
+          path: |
+            artifact/*.zip
+            artifact/SHA256SUMS.txt
           if-no-files-found: error
 
       - uses: actions/upload-artifact@v7
         with:
+          name: mingw-${{ matrix.config.bits }}-installer
           archive: false
           path: artifact/*.exe
           if-no-files-found: error
@@ -235,6 +239,154 @@ jobs:
 
       - uses: actions/upload-artifact@v7
         with:
+          name: msvc-${{ matrix.config.arch }}-portable
           archive: true
-          path: .\Package\
+          path: |
+            .\Package\*.zip
+            .\Package\SHA256SUMS.txt
           if-no-files-found: error
+
+  release-windows-x64:
+    name: Publish verified Windows x64 prerelease
+    if: >-
+      github.ref == 'refs/heads/master' &&
+      github.event_name == 'push' &&
+      startsWith(github.event.head_commit.message, 'Release: LabPBR/POM Windows x64')
+    needs: [mingw, msvc]
+    runs-on: ubuntu-24.04
+    permissions:
+      actions: read
+      contents: write
+    env:
+      RELEASE_TAG: labpbr-pom-win64-2026.11.10
+    steps:
+      - name: Download MinGW x64 portable package
+        uses: actions/download-artifact@v8
+        with:
+          name: mingw-64-portable
+          path: release/mingw
+
+      - name: Download MSVC x64 portable package
+        uses: actions/download-artifact@v8
+        with:
+          name: msvc-x64-portable
+          path: release/msvc
+
+      - name: Verify packages and checksums
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          mapfile -t mingw_packages < <(find release/mingw -maxdepth 1 -type f -name '*.zip' -print)
+          mapfile -t msvc_packages < <(find release/msvc -maxdepth 1 -type f -name '*.zip' -print)
+          if [[ "${#mingw_packages[@]}" -ne 1 || "${#msvc_packages[@]}" -ne 1 ]]; then
+            echo "Expected exactly one MinGW x64 ZIP and one MSVC x64 ZIP." >&2
+            find release -maxdepth 2 -type f -print
+            exit 1
+          fi
+
+          test -s release/mingw/SHA256SUMS.txt
+          test -s release/msvc/SHA256SUMS.txt
+          (cd release/mingw && sha256sum --check SHA256SUMS.txt)
+          (cd release/msvc && sha256sum --check SHA256SUMS.txt)
+          unzip -t "${mingw_packages[0]}"
+          unzip -t "${msvc_packages[0]}"
+
+          {
+            (cd release/mingw && sha256sum *.zip)
+            (cd release/msvc && sha256sum *.zip)
+          } > release/SHA256SUMS.txt
+
+          echo "MINGW_PACKAGE=${mingw_packages[0]}" >> "$GITHUB_ENV"
+          echo "MSVC_PACKAGE=${msvc_packages[0]}" >> "$GITHUB_ENV"
+          cat release/SHA256SUMS.txt
+
+      - name: Wait for Linux and GL3 POM visual verification on this exact commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          for attempt in $(seq 1 60); do
+            runs="$(gh run list \
+              --repo "$GITHUB_REPOSITORY" \
+              --workflow linux.yml \
+              --branch master \
+              --commit "$GITHUB_SHA" \
+              --limit 10 \
+              --json databaseId,status,conclusion)"
+            success_id="$(jq -r '[.[] | select(.status == "completed" and .conclusion == "success")][0].databaseId // empty' <<< "$runs")"
+            failed_id="$(jq -r '[.[] | select(.status == "completed" and (.conclusion == "failure" or .conclusion == "cancelled" or .conclusion == "timed_out" or .conclusion == "action_required"))][0].databaseId // empty' <<< "$runs")"
+
+            if [[ -n "$success_id" ]]; then
+              echo "Linux/GL3/POM CI passed on $GITHUB_SHA (run $success_id)."
+              exit 0
+            fi
+            if [[ -n "$failed_id" ]]; then
+              echo "Linux/GL3/POM CI failed on $GITHUB_SHA (run $failed_id)." >&2
+              exit 1
+            fi
+            echo "Waiting for Linux/GL3/POM CI on $GITHUB_SHA (attempt $attempt/60)..."
+            sleep 10
+          done
+
+          echo "Timed out waiting for Linux/GL3/POM CI on $GITHUB_SHA." >&2
+          exit 1
+
+      - name: Prepare release notes
+        shell: bash
+        run: |
+          cat > release/release-notes.md <<EOF
+          ## Luanti engine LabPBR + Parallax Occlusion Mapping — Windows x64
+
+          This is a custom-engine prerelease from commit $GITHUB_SHA in hashin9973-ux/luanti. It is not an official upstream Luanti release.
+
+          ### Portable packages
+
+          - MinGW x64 portable ZIP: $(basename "$MINGW_PACKAGE")
+          - MSVC x64 portable ZIP: $(basename "$MSVC_PACKAGE")
+          - SHA256SUMS.txt: SHA-256 checksums for both ZIP files
+
+          ### CI verification
+
+          - MinGW x64 package build and Wine executable version/startup check.
+          - MSVC x64 release build, C++ unit tests, and portable-package validation.
+          - Linux workflow success on this exact source commit, including the GL3 optional-map shader matrix and rendered POM on/off image comparison.
+          - Both release ZIPs were rechecked for archive integrity and against their build-generated SHA-256 manifests before publication.
+
+          ### Scope and limitations
+
+          - The build contains the engine-level LabPBR/POM implementation and the repository's Devtest game content.
+          - The external Parallax PBR source archive is used only by CI tests and is not redistributed in these release assets.
+          - The GL3 image comparison is a deterministic CI rendering check; it is not certification across every hardware GPU or driver.
+          - LabPBR porosity/subsurface and complete conductor optical-constant support remain documented limitations.
+
+          Source commit: $GITHUB_SHA
+          Windows workflow run: https://github.com/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID
+          EOF
+
+      - name: Publish GitHub prerelease
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "Refusing to overwrite existing release $RELEASE_TAG." >&2
+            exit 1
+          fi
+          if gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/$RELEASE_TAG" >/dev/null 2>&1; then
+            echo "Refusing to reuse existing tag $RELEASE_TAG." >&2
+            exit 1
+          fi
+          gh release create "$RELEASE_TAG" \
+            "$MINGW_PACKAGE" \
+            "$MSVC_PACKAGE" \
+            release/SHA256SUMS.txt \
+            --repo "$GITHUB_REPOSITORY" \
+            --target "$GITHUB_SHA" \
+            --title "Luanti LabPBR + POM — Windows x64" \
+            --notes-file release/release-notes.md \
+            --prerelease \
+            --latest=false
