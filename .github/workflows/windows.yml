@@ -312,7 +312,7 @@ jobs:
 
       - name: Dispatch Linux GL3/POM verification on this exact commit
         env:
-          GH_TOKEN: \${{ github.token }}
+          GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
           set -euo pipefail
@@ -328,7 +328,7 @@ jobs:
 
       - name: Wait for Linux and GL3 POM visual verification on this exact commit
         env:
-          GH_TOKEN: \${{ github.token }}
+          GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
           set -euo pipefail
@@ -347,6 +347,7 @@ jobs:
 
             if [[ -n "$success_id" ]]; then
               echo "Linux/GL3/POM CI passed on $GITHUB_SHA (run $success_id)."
+              echo "LINUX_RUN_ID=$success_id" >> "$GITHUB_ENV"
               exit 0
             fi
             if [[ -n "$failed_id" ]]; then
@@ -376,8 +377,8 @@ jobs:
 
           ### CI verification
 
-          - MinGW x64 package build and Wine executable version/startup check.
-          - MSVC x64 release build, C++ unit tests, and portable-package validation.
+          - MinGW x64 package build, archive checks, and Wine luanti.exe --version invocation (not a gameplay session).
+          - MSVC x64 release build, C++ unit tests, native executable version check, and portable-package validation.
           - Linux workflow success on this exact source commit, including the GL3 optional-map shader matrix and rendered POM on/off image comparison.
           - Both release ZIPs were rechecked for archive integrity and against their build-generated SHA-256 manifests before publication.
 
@@ -390,6 +391,7 @@ jobs:
 
           Source commit: $GITHUB_SHA
           Windows workflow run: https://github.com/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID
+          Linux GL3/POM verification run: https://github.com/$GITHUB_REPOSITORY/actions/runs/$LINUX_RUN_ID
           EOF
 
       - name: Publish GitHub prerelease
