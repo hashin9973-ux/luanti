@@ -48,6 +48,12 @@ on:
       - 'util/test_multiplayer.sh'
 
   workflow_dispatch:
+    inputs:
+      publish_release:
+        description: "Build Windows x64 packages and publish a GitHub prerelease after GL3 POM verification"
+        required: false
+        type: boolean
+        default: false
 
 jobs:
   mingw:
@@ -250,12 +256,15 @@ jobs:
     name: Publish verified Windows x64 prerelease
     if: >-
       github.ref == 'refs/heads/master' &&
-      github.event_name == 'push' &&
-      startsWith(github.event.head_commit.message, 'Release: LabPBR/POM Windows x64')
+      (
+        (github.event_name == 'push' &&
+         startsWith(github.event.head_commit.message, 'Release: LabPBR/POM Windows x64')) ||
+        (github.event_name == 'workflow_dispatch' && inputs.publish_release)
+      )
     needs: [mingw, msvc]
     runs-on: ubuntu-24.04
     permissions:
-      actions: read
+      actions: write
       contents: write
     env:
       RELEASE_TAG: labpbr-pom-win64-2026.11.10
@@ -301,23 +310,40 @@ jobs:
           echo "MSVC_PACKAGE=${msvc_packages[0]}" >> "$GITHUB_ENV"
           cat release/SHA256SUMS.txt
 
-      - name: Wait for Linux and GL3 POM visual verification on this exact commit
+      - name: Dispatch Linux GL3/POM verification on this exact commit
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: \${{ github.token }}
         shell: bash
         run: |
           set -euo pipefail
 
-          for attempt in $(seq 1 60); do
+          current_master="$(gh api "repos/$GITHUB_REPOSITORY/commits/master" --jq '.sha')"
+          if [[ "$current_master" != "$GITHUB_SHA" ]]; then
+            echo "master moved from $GITHUB_SHA to $current_master; refusing to publish a build from a stale commit." >&2
+            exit 1
+          fi
+
+          gh workflow run linux.yml --repo "$GITHUB_REPOSITORY" --ref master
+          echo "Dispatched linux.yml for master at $GITHUB_SHA."
+
+      - name: Wait for Linux and GL3 POM visual verification on this exact commit
+        env:
+          GH_TOKEN: \${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          for attempt in $(seq 1 240); do
             runs="$(gh run list \
               --repo "$GITHUB_REPOSITORY" \
               --workflow linux.yml \
               --branch master \
               --commit "$GITHUB_SHA" \
-              --limit 10 \
-              --json databaseId,status,conclusion)"
-            success_id="$(jq -r '[.[] | select(.status == "completed" and .conclusion == "success")][0].databaseId // empty' <<< "$runs")"
-            failed_id="$(jq -r '[.[] | select(.status == "completed" and (.conclusion == "failure" or .conclusion == "cancelled" or .conclusion == "timed_out" or .conclusion == "action_required"))][0].databaseId // empty' <<< "$runs")"
+              --event workflow_dispatch \
+              --limit 20 \
+              --json databaseId,status,conclusion,headSha,event)"
+            success_id="$(jq -r --arg sha "$GITHUB_SHA" '[.[] | select(.headSha == $sha and .event == "workflow_dispatch" and .status == "completed" and .conclusion == "success")][0].databaseId // empty' <<< "$runs")"
+            failed_id="$(jq -r --arg sha "$GITHUB_SHA" '[.[] | select(.headSha == $sha and .event == "workflow_dispatch" and .status == "completed" and (.conclusion == "failure" or .conclusion == "cancelled" or .conclusion == "timed_out" or .conclusion == "action_required"))][0].databaseId // empty' <<< "$runs")"
 
             if [[ -n "$success_id" ]]; then
               echo "Linux/GL3/POM CI passed on $GITHUB_SHA (run $success_id)."
@@ -327,7 +353,7 @@ jobs:
               echo "Linux/GL3/POM CI failed on $GITHUB_SHA (run $failed_id)." >&2
               exit 1
             fi
-            echo "Waiting for Linux/GL3/POM CI on $GITHUB_SHA (attempt $attempt/60)..."
+            echo "Waiting for Linux/GL3/POM CI on $GITHUB_SHA (attempt $attempt/240)..."
             sleep 10
           done
 
