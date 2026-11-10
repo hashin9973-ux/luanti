@@ -47,6 +47,8 @@ on:
       - '.github/workflows/linux.yml'
       - 'util/test_multiplayer.sh'
 
+  workflow_dispatch:
+
 jobs:
   mingw:
     name: "MinGW cross-compiler (${{ matrix.config.bits }}-bit)"
