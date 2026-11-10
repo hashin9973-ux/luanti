@@ -11,6 +11,7 @@ mkdir -p "$asset_dir" "$log_dir"
 
 command -v import >/dev/null || { echo "ImageMagick import is required." >&2; exit 1; }
 command -v compare >/dev/null || { echo "ImageMagick compare is required." >&2; exit 1; }
+command -v identify >/dev/null || { echo "ImageMagick identify is required." >&2; exit 1; }
 
 for suffix in .png _n.png _s.png; do
   unzip -p "$archive" "$asset_root/stone$suffix" > "$asset_dir/stone$suffix"
@@ -30,11 +31,19 @@ capture_scene() {
 
   echo "=== PBR POM visual capture: $name ==="
   echo "PBR_POM_CAPTURE_OUTPUT=$output"
-  LUANTI_VISUAL_CAPTURE="$output" clientconf="$client_config" xvfb-run -a ./util/test_singleplayer.sh 2>&1 | tee "$log_dir/pom-visual-$name.log"
+  LUANTI_VISUAL_CAPTURE="$output" clientconf="$client_config" xvfb-run -a --server-args="-screen 0 640x480x24" ./util/test_singleplayer.sh 2>&1 | tee "$log_dir/pom-visual-$name.log"
 }
 
 capture_scene false "$log_dir/pom-disabled.png" disabled
 capture_scene true "$log_dir/pom-enabled.png" enabled
+
+for image in "$log_dir/pom-disabled.png" "$log_dir/pom-enabled.png"; do
+  dimensions="$(identify -format '%wx%h' "$image")"
+  if [[ "$dimensions" != "640x480" ]]; then
+    echo "Unexpected POM screenshot dimensions for $image: $dimensions" >&2
+    exit 1
+  fi
+done
 
 # Ignore the HUD/window border and compare the central stone-wall region only.
 # ImageMagick compare exits 1 for different images; that is the expected result.
