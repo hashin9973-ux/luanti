@@ -267,7 +267,7 @@ jobs:
       actions: write
       contents: write
     env:
-      RELEASE_TAG: labpbr-pom-win64-2026.11.10
+      RELEASE_TAG: labpbr-pom-win64-2026.11.09
     steps:
       - name: Download MinGW x64 portable package
         uses: actions/download-artifact@v8
