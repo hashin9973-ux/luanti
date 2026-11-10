@@ -49,6 +49,8 @@ on:
       - '.github/workflows/linux.yml'
       - '.github/workflows/windows.yml'
 
+  workflow_dispatch:
+
 env:
   MINETEST_POSTGRESQL_CONNECT_STRING: 'host=localhost user=minetest password=minetest dbname=minetest'
 
