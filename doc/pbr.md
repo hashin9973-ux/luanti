@@ -50,8 +50,16 @@ the current shadow-map visibility test itself still uses geometric shadow data.
 The specular branch uses a GGX microfacet distribution and Schlick Fresnel. Conductor IDs currently use an albedo-tinted F0 fallback;
 the format's optional per-metal complex-IOR table is not implemented.
 
-The specular-map blue channel (porosity/subsurface scattering) is not currently
-shaded. This implementation also does not add an image-based-lighting or
+The LabPBR standard defines porosity/subsurface scattering in specular
+blue as optional shader data; it is not currently shaded here. Predefined
+complex-IOR constants for individual conductor IDs are also optional in the
+implementation requirements; this renderer currently approximates all
+conductors with albedo-tinted F0 instead. See the
+[LabPBR material standard](https://shaderlabs.org/wiki/LabPBR_Material_Standard)
+and [implementation requirements](https://shaderlabs.org/wiki/LabPBR_Implementation_Requirements)
+for the required and optional channel scope.
+
+This implementation also does not add an image-based-lighting or
 environment-probe system; the direct specular contribution uses Luanti's
 current sun/moon/custom shadow-light direction.
 
@@ -100,10 +108,14 @@ unit-test target.
 The Linux CI workflow includes a GL3 singleplayer smoke test that extracts a
 dimension-matched stone base/normal/specular set from the repository's supplied
 archive into the temporary CI checkout, enables PBR and POM in the client
-configuration, and starts the existing Devtest game. This is intended to
-exercise the real engine material path and shader startup. It is not a
-screenshot comparison and does not by itself prove visually correct POM depth
-or absence of all rendering artifacts.
+configuration, and starts the existing Devtest game. This exercises the real
+engine material path and shader startup.
+
+A separate POM visual-test script now builds a deterministic Devtest stone room,
+captures matching POM-disabled and POM-enabled OpenGL frames, and compares the
+central wall pixels. The test has been added to CI, but its current branch-head
+run has not yet been reported by GitHub Actions; therefore visual POM
+verification remains pending.
 
 The PBR asset-audit workflow inventories source image/map paths, checks
 manifest targets and sidecar availability, and analyzes packed channel data.
@@ -137,5 +149,5 @@ candidate source names and missing matches without redistributing the artwork.
 - Complex conductor optical constants and specular-blue porosity/SSS are not
   implemented.
 - No environment-map reflections or global illumination are added by this work.
-- A GL3 startup smoke test is not visual verification. A rendered geometry
-  comparison is still required before marking POM visually verified.
+- The deterministic POM screenshot comparison is present, but must pass on the
+  current branch head before POM can be marked visually verified.
