@@ -157,6 +157,9 @@ jobs:
       - name: PBR/POM shader and optional-map matrix (GL3)
         run: bash util/pbr/run_gl3_shader_smoke.sh
 
+      - name: Validate PBR/POM visual-test shell
+        run: bash -n util/pbr/run_gl3_pom_visual_test.sh
+
       - name: PBR/POM rendered-image comparison (GL3)
         run: bash util/pbr/run_gl3_pom_visual_test.sh
 
