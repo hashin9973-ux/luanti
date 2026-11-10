@@ -51,8 +51,8 @@ elseif mode == "pbr_visual" then
 	core.register_on_joinplayer(function(player)
 		local scene_created = false
 		core.emerge_area(
-			{x = -10, y = -8, z = -10},
-			{x = 10, y = 8, z = 12},
+			{x = -14, y = -8, z = -10},
+			{x = 14, y = 8, z = 12},
 			function(_, action, calls_remaining)
 				if action == core.EMERGE_ERRORED then
 					write_marker(worldpath .. "/pbr_visual_error")
@@ -66,34 +66,34 @@ elseif mode == "pbr_visual" then
 				-- Clear and construct the same room each run. The front wall is
 				-- intentionally viewed at an oblique angle so height displacement
 				-- produces a measurable UV/pixel difference.
-				for x = -8, 8 do
+				for x = -12, 12 do
 					for y = -4, 4 do
 						for z = -8, 8 do
 							core.set_node({x = x, y = y, z = z}, {name = "air"})
 						end
 					end
 				end
-				for x = -8, 8 do
+				for x = -12, 12 do
 					for y = -4, 4 do
 						core.set_node({x = x, y = y, z = 7}, {name = "basenodes:stone"})
 						core.set_node({x = x, y = y, z = -8}, {name = "basenodes:stone"})
 					end
 				end
-				for x = -8, 8 do
+				for x = -12, 12 do
 					for z = -8, 7 do
 						core.set_node({x = x, y = -4, z = z}, {name = "basenodes:stone"})
 					end
 				end
 				for y = -3, 4 do
 					for z = -8, 7 do
-						core.set_node({x = -8, y = y, z = z}, {name = "basenodes:stone"})
-						core.set_node({x = 8, y = y, z = z}, {name = "basenodes:stone"})
+						core.set_node({x = -12, y = y, z = z}, {name = "basenodes:stone"})
+						core.set_node({x = 12, y = y, z = z}, {name = "basenodes:stone"})
 					end
 				end
 
 				core.set_timeofday(0.5)
 				player:set_pos({x = 0, y = 0, z = 0})
-				player:set_look_horizontal(0.8)
+				player:set_look_horizontal(0.55)
 				player:set_look_vertical(0)
 				player:set_physics_override({speed = 0, jump = 0, gravity = 0})
 
