@@ -141,7 +141,7 @@ jobs:
       - name: Install deps
         run: |
           source ./util/ci/common.sh
-          install_linux_deps clang-22 lldb xvfb
+          install_linux_deps clang-22 lldb xvfb imagemagick
 
       - name: Build
         run: |
@@ -156,6 +156,9 @@ jobs:
 
       - name: PBR/POM shader and optional-map matrix (GL3)
         run: bash util/pbr/run_gl3_shader_smoke.sh
+
+      - name: PBR/POM rendered-image comparison (GL3)
+        run: bash util/pbr/run_gl3_pom_visual_test.sh
 
       - name: Upload PBR/POM GL3 runtime logs
         if: always()

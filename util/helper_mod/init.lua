@@ -20,6 +20,91 @@ if mode == "devtest" then
 		core.register_on_joinplayer(function() callback(true) end)
 	end
 
+elseif mode == "pbr_visual" then
+
+	-- Build a deterministic stone room for the automated POM image comparison.
+	local worldpath = core.get_worldpath()
+	local ready_path = worldpath .. "/pbr_visual_ready"
+	local captured_path = worldpath .. "/pbr_visual_capture_done"
+
+	local function write_marker(path)
+		local file, err = io.open(path, "w")
+		if not file then
+			core.log("error", "[pbr_visual] Unable to write " .. path .. ": " .. tostring(err))
+			return false
+		end
+		file:write("ok\\n")
+		file:close()
+		return true
+	end
+
+	local function wait_for_capture()
+		local file = io.open(captured_path, "r")
+		if file then
+			file:close()
+			core.request_shutdown("PBR visual capture complete", false, 1)
+			return
+		end
+		core.after(0.2, wait_for_capture)
+	end
+
+	core.register_on_joinplayer(function(player)
+		local scene_created = false
+		core.emerge_area(
+			{x = -10, y = -8, z = -10},
+			{x = 10, y = 8, z = 12},
+			function(_, action, calls_remaining)
+				if action == core.EMERGE_ERRORED then
+					write_marker(worldpath .. "/pbr_visual_error")
+					return
+				end
+				if calls_remaining ~= 0 or scene_created then
+					return
+				end
+				scene_created = true
+
+				-- Clear and construct the same room each run. The front wall is
+				-- intentionally viewed at an oblique angle so height displacement
+				-- produces a measurable UV/pixel difference.
+				for x = -8, 8 do
+					for y = -4, 4 do
+						for z = -8, 8 do
+							core.set_node({x = x, y = y, z = z}, {name = "air"})
+						end
+					end
+				end
+				for x = -8, 8 do
+					for y = -4, 4 do
+						core.set_node({x = x, y = y, z = 7}, {name = "basenodes:stone"})
+					end
+				end
+				for x = -8, 8 do
+					for z = -8, 7 do
+						core.set_node({x = x, y = -4, z = z}, {name = "basenodes:stone"})
+					end
+				end
+				for y = -3, 4 do
+					for z = -8, 7 do
+						core.set_node({x = -8, y = y, z = z}, {name = "basenodes:stone"})
+						core.set_node({x = 8, y = y, z = z}, {name = "basenodes:stone"})
+					end
+				end
+
+				core.set_timeofday(0.5)
+				player:set_pos({x = 0, y = 0, z = 0})
+				player:set_look_horizontal(0.35)
+				player:set_look_vertical(0)
+				player:set_physics_override({speed = 0, jump = 0, gravity = 0})
+
+				core.after(2, function()
+					if write_marker(ready_path) then
+						wait_for_capture()
+					end
+				end)
+			end
+		)
+	end)
+
 elseif mode == "mapgen" then
 
 	-- Stress-test mapgen by constantly generating new area
