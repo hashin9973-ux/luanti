@@ -237,6 +237,13 @@ struct ShaderFeatures {
 	/// @see irr::video::IVideoDriver::setJointTransforms
 	bool skinning = false;
 
+	/// PBR material features are enabled only when their source maps exist.
+	bool pbr_normal_map = false;
+	bool pbr_specular_map = false;
+	bool pbr_parallax = false;
+	int pbr_parallax_samples = 24;
+	float pbr_parallax_height_scale = 0.05f;
+
 	void setConstants(ShaderConstants &consts) const;
 };
 
@@ -304,6 +311,13 @@ public:
 	 * @brief Returns true if 'sampler2DArray' is supported in GLSL
 	 */
 	virtual bool supportsSampler2DArray() const = 0;
+
+	/// Fragment derivatives are needed to construct a per-fragment tangent frame.
+	/// GLES 2.0 drivers without GLSL ES 3.0 are conservatively treated as unsupported.
+	virtual bool supportsFragmentShaderDerivatives() const { return false; }
+
+	/// POM uses explicit texture gradients, requiring GLSL 1.30 / ES 3.0 or newer.
+	virtual bool supportsParallaxOcclusionMapping() const { return false; }
 };
 
 class IWritableShaderSource : public IShaderSource {

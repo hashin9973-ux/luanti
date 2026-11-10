@@ -85,6 +85,8 @@ public:
 
 	/// Filter needed for mesh-suitable textures, including leading ^
 	static constexpr const char *FILTER_FOR_MESH = "^[applyfiltersformesh";
+	/// Mesh filter for packed material maps; preserves alpha as data.
+	static constexpr const char *FILTER_FOR_MESH_PBR = "^[applyfiltersformesh_pbr";
 
 	/**
 	 * Returns a palette from the given texture string.

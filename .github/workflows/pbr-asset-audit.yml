@@ -1,0 +1,48 @@
+name: PBR asset audit
+
+on:
+  push:
+    branches:
+      - feature/engine-pbr-pom
+    paths:
+      - 'Parallax PBR 64x v2.5.zip'
+      - 'util/pbr/**'
+      - 'doc/devtest_texture_mapping.json'
+      - '.github/workflows/pbr-asset-audit.yml'
+  pull_request:
+    paths:
+      - 'Parallax PBR 64x v2.5.zip'
+      - 'util/pbr/**'
+      - 'doc/devtest_texture_mapping.json'
+      - '.github/workflows/pbr-asset-audit.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  inspect-asset-archive:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install image channel inspection tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y imagemagick jq
+      - name: Inventory archive and Devtest texture names
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash util/pbr/inspect_assets.sh
+          bash util/pbr/analyze_labpbr_channels.sh
+          bash util/pbr/validate_texture_mapping.sh
+      - name: Upload source inventory
+        uses: actions/upload-artifact@v7
+        with:
+          name: pbr-asset-inventory
+          path: |
+            build/pbr-audit/
+            build/pbr-channel-audit/
+            build/pbr-mapping-audit/
+          if-no-files-found: error
+          retention-days: 30

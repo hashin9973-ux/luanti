@@ -843,6 +843,24 @@
 #    type: bool
 # connected_glass = false
 
+#    Enable optional LabPBR normal and specular maps for node textures.
+#    Textures without companion maps use the default rendering path.
+#    type: bool
+# enable_pbr = false
+
+#    Enable view-dependent parallax occlusion mapping for LabPBR node textures.
+#    Requires enable_pbr and matching normal maps.
+#    type: bool
+# enable_pbr_parallax = false
+
+#    Number of height-field samples for parallax occlusion mapping (8-64).
+#    type: int min: 8 max: 64
+# pbr_parallax_samples = 24
+
+#    Parallax height multiplier (0.0-0.1).
+#    type: float min: 0.0 max: 0.1
+# pbr_parallax_height_scale = 0.05
+
 #    Enable smooth lighting with simple ambient occlusion.
 #    type: bool
 # smooth_lighting = true

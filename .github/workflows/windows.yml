@@ -8,6 +8,9 @@ on:
       - 'lib/**.cpp'
       - 'src/**.[ch]'
       - 'src/**.cpp'
+      - 'src/unittest/**'
+      - 'src/defaultsettings.cpp'
+      - 'minetest.conf.example'
       - 'irr/**.[ch]'
       - 'irr/**.cpp'
       - '**/CMakeLists.txt'
@@ -15,13 +18,21 @@ on:
       - 'po/**.po'
       - 'util/buildbot/**'
       - 'misc/*'
+      - 'client/shaders/**'
+      - 'builtin/settingtypes.txt'
+      - 'util/pbr/**'
       - '.github/workflows/windows.yml'
+      - '.github/workflows/linux.yml'
+      - 'util/test_multiplayer.sh'
   pull_request:
     paths:
       - 'lib/**.[ch]'
       - 'lib/**.cpp'
       - 'src/**.[ch]'
       - 'src/**.cpp'
+      - 'src/unittest/**'
+      - 'src/defaultsettings.cpp'
+      - 'minetest.conf.example'
       - 'irr/**.[ch]'
       - 'irr/**.cpp'
       - '**/CMakeLists.txt'
@@ -29,7 +40,12 @@ on:
       - 'po/**.po'
       - 'util/buildbot/**'
       - 'misc/*'
+      - 'client/shaders/**'
+      - 'builtin/settingtypes.txt'
+      - 'util/pbr/**'
       - '.github/workflows/windows.yml'
+      - '.github/workflows/linux.yml'
+      - 'util/test_multiplayer.sh'
 
 jobs:
   mingw:
@@ -55,7 +71,7 @@ jobs:
       - name: Build
         run: |
            EXISTING_MINETEST_DIR=$PWD \
-           ./util/buildbot/buildwin${{ matrix.config.bits }}.sh B
+           ./util/buildbot/buildwin${{ matrix.config.bits }}.sh B -DINSTALL_DEVTEST=1
            mkdir -p artifact
            cp -v B/build/*.zip artifact/
 
@@ -63,9 +79,26 @@ jobs:
       - name: Runtime test
         run: |
           dest=$(mktemp -d)
+          unzip -t artifact/*.zip
           unzip -q -d "$dest" artifact/*.zip
           cd "$dest"/luanti-*-win*
+          for required in \
+            builtin/init.lua \
+            builtin/settingtypes.txt \
+            client/shaders/nodes_shader/opengl_vertex.glsl \
+            client/shaders/nodes_shader/opengl_fragment.glsl \
+            games/devtest/game.conf \
+            games/devtest/mods/basenodes/init.lua \
+            doc/pbr.md \
+            doc/devtest_texture_mapping.json; do
+            test -f "$required" || { echo "Missing portable package file: $required"; exit 1; }
+          done
+          grep -q '^enable_pbr ' builtin/settingtypes.txt
           wine bin/luanti.exe --version
+
+      - name: Generate portable package checksum
+        run: |
+          sha256sum artifact/*.zip | sed 's|artifact/||' > artifact/SHA256SUMS.txt
 
       - name: Build for NSIS
         run: |
@@ -80,8 +113,8 @@ jobs:
 
       - uses: actions/upload-artifact@v7
         with:
-          archive: false
-          path: artifact/*.zip
+          archive: true
+          path: artifact/
           if-no-files-found: error
 
       - uses: actions/upload-artifact@v7
@@ -151,6 +184,7 @@ jobs:
           -DENABLE_POSTGRESQL=OFF  `
           -DENABLE_LUAJIT=TRUE  `
           -DREQUIRE_LUAJIT=TRUE  `
+          -DINSTALL_DEVTEST=1  `
           -DRUN_IN_PLACE=1 .
 
       - name: Build
@@ -168,6 +202,28 @@ jobs:
           rm -r $env:GITHUB_WORKSPACE\Package\_CPack_Packages
           Get-ChildItem "$env:GITHUB_WORKSPACE\Package\*.zip" | Rename-Item -NewName { $_.Name -replace '\.zip$', '-msvc.zip' }
 
+      - name: Validate MSVC portable package
+        shell: pwsh
+        run: |
+          $zip = Get-ChildItem "$env:GITHUB_WORKSPACE\Package" -Filter "*.zip" |
+            Select-Object -First 1
+          if (-not $zip) { throw "CPack did not produce a ZIP package." }
+          $expanded = Join-Path $env:RUNNER_TEMP "luanti-pbr-portable"
+          Remove-Item -Recurse -Force $expanded -ErrorAction SilentlyContinue
+          New-Item -ItemType Directory -Force $expanded | Out-Null
+          Expand-Archive -LiteralPath $zip.FullName -DestinationPath $expanded
+          .\util\pbr\validate_windows_package.ps1 -PackageRoot $expanded
+
+      - name: Generate Windows package checksums
+        shell: pwsh
+        run: |
+          $files = Get-ChildItem "$env:GITHUB_WORKSPACE\Package" -Filter "*.zip"
+          $lines = foreach ($file in $files) {
+            $hash = (Get-FileHash -Algorithm SHA256 $file.FullName).Hash.ToLowerInvariant()
+            "$hash  $($file.Name)"
+          }
+          $lines | Set-Content -Encoding ascii "$env:GITHUB_WORKSPACE\Package\SHA256SUMS.txt"
+
       - name: Save vcpkg cache
         uses: actions/cache/save@v6
         if: always() && steps.cmake.outcome == 'success' && steps.vcpkg-cache.outputs.cache-hit != 'true'
@@ -177,6 +233,6 @@ jobs:
 
       - uses: actions/upload-artifact@v7
         with:
-          archive: false
+          archive: true
           path: .\Package\
           if-no-files-found: error

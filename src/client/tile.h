@@ -82,6 +82,8 @@ struct TileLayer
 	{
 		return
 			texture_id == other.texture_id &&
+			normal_texture_id == other.normal_texture_id &&
+			specular_texture_id == other.specular_texture_id &&
 			shader_id == other.shader_id &&
 			material_flags == other.material_flags &&
 			has_color == other.has_color &&
@@ -131,9 +133,15 @@ struct TileLayer
 
 	video::ITexture *texture = nullptr;
 
+	// Optional PBR maps, bound to texture units 2 and 3.
+	video::ITexture *normal_texture = nullptr;
+	video::ITexture *specular_texture = nullptr;
+
 	u32 shader_id = 0;
 
 	u32 texture_id = 0;
+	u32 normal_texture_id = 0;
+	u32 specular_texture_id = 0;
 
 	u16 animation_frame_length_ms = 0;
 	u16 animation_frame_count = 1;
@@ -175,7 +183,8 @@ struct std::hash<TileLayer>
 	std::size_t operator()(const TileLayer &l) const noexcept
 	{
 		std::size_t ret = 0;
-		for (auto h : { l.texture_id, l.shader_id, (u32)l.material_flags }) {
+		for (auto h : { l.texture_id, l.normal_texture_id, l.specular_texture_id,
+				l.shader_id, (u32)l.material_flags }) {
 			ret += h;
 			ret ^= (ret << 6) + (ret >> 2); // distribute bits
 		}

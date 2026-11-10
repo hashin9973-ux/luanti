@@ -4,6 +4,7 @@
 
 #include "node_visuals.h"
 
+#include "pbr_material.h"
 #include "mesh.h"
 #include "shader.h"
 #include "client.h"
@@ -20,9 +21,21 @@ struct TileAttribContext {
 	PreLoadedTextures *texture_pool;
 	video::SColor base_color;
 	const TextureSettings &tsettings;
+	bool supports_fragment_derivatives;
+	bool supports_parallax_occlusion;
 };
 
-using GetShaderCallback = std::function<u32 /* shader id */ (bool /* array_texture */)>;
+using GetShaderCallback = std::function<u32 /* shader id */ (
+		bool /* array_texture */, bool /* normal_map */, bool /* specular_map */,
+		bool /* parallax */)>;
+
+static std::string getPbrMapName(const std::string &texture_name, const char *suffix)
+{
+	std::string name;
+	if (!labpbr::getCompanionTextureName(texture_name, suffix, name))
+		return {};
+	return name;
+}
 
 /*
 	Texture pool and related
@@ -78,6 +91,13 @@ static void fillTileAttribs(TileLayer *layer, TileAttribContext context,
 {
 	auto *tsrc = context.tsrc;
 	const auto &tsettings = context.tsettings;
+
+	// Clear optional material state before resolving this tile. Some node
+	// definitions are rebuilt when texture settings or media change.
+	layer->normal_texture = nullptr;
+	layer->specular_texture = nullptr;
+	layer->normal_texture_id = 0;
+	layer->specular_texture_id = 0;
 
 	std::string texture_image;
 	if (!tiledef.name.empty()) {
@@ -161,9 +181,42 @@ static void fillTileAttribs(TileLayer *layer, TileAttribContext context,
 		}
 	}
 
+	// Optional LabPBR maps are named after the base texture, with _n and _s
+	// suffixes. Do not attach a static map to an animated base texture.
+	if (tsettings.enable_pbr && !(layer->material_flags & MATERIAL_FLAG_ANIMATION)) {
+		auto load_map = [&](const char *suffix, video::ITexture **texture, u32 *texture_id) {
+			std::string map_name = getPbrMapName(tiledef.name, suffix);
+			if (map_name.empty() || !tsrc->isKnownSourceImage(map_name))
+				return;
+			if (tsrc->needFilterForMesh())
+				map_name += ITextureSource::FILTER_FOR_MESH_PBR;
+			// PBR companions must match the filtered base texture dimensions.
+			if (tsrc->getTextureDimensions(map_name) !=
+					tsrc->getTextureDimensions(texture_image))
+				return;
+			*texture = tsrc->getTexture(map_name, texture_id);
+		};
+
+		load_map("_n", &layer->normal_texture, &layer->normal_texture_id);
+		load_map("_s", &layer->specular_texture, &layer->specular_texture_id);
+
+		// A tangent frame is required to interpret the normal map and its height
+		// channel. If the backend cannot provide fragment derivatives, retain the
+		// specular map but use the geometric normal and disable POM.
+		if (!context.supports_fragment_derivatives) {
+			layer->normal_texture = nullptr;
+			layer->normal_texture_id = 0;
+		}
+	}
+
 	// Decide on shader to use
 	if (layer->texture) {
-		layer->shader_id = get_shader(layer->texture->getType() == video::ETT_2D_ARRAY);
+		const bool has_normal_map = layer->normal_texture != nullptr;
+		const bool has_specular_map = layer->specular_texture != nullptr;
+		const bool use_parallax = tsettings.enable_pbr_parallax &&
+				has_normal_map && context.supports_parallax_occlusion;
+		layer->shader_id = get_shader(layer->texture->getType() == video::ETT_2D_ARRAY,
+				has_normal_map, has_specular_map, use_parallax);
 	}
 }
 
@@ -363,17 +416,29 @@ void NodeVisuals::updateTextures(ContentFeatures &f, ITextureSource *tsrc,
 		break;
 	}
 
-	GetShaderCallback tile_shader = [&] (bool array_texture) {
+	GetShaderCallback tile_shader = [&] (bool array_texture, bool normal_map,
+			bool specular_map, bool parallax) {
 		ShaderFeatures features;
 		features.array_texture = array_texture;
+		features.pbr_normal_map = normal_map;
+		features.pbr_specular_map = specular_map;
+		features.pbr_parallax = parallax;
+		features.pbr_parallax_samples = tsettings.pbr_parallax_samples;
+		features.pbr_parallax_height_scale = tsettings.pbr_parallax_height_scale;
 		return shdsrc->getShader("nodes_shader", material_type, drawtype, features);
 	};
 
 	MaterialType overlay_material = material_type_with_alpha(material_type);
 
-	GetShaderCallback overlay_shader = [&] (bool array_texture) {
+	GetShaderCallback overlay_shader = [&] (bool array_texture, bool normal_map,
+			bool specular_map, bool parallax) {
 		ShaderFeatures features;
 		features.array_texture = array_texture;
+		features.pbr_normal_map = normal_map;
+		features.pbr_specular_map = specular_map;
+		features.pbr_parallax = parallax;
+		features.pbr_parallax_samples = tsettings.pbr_parallax_samples;
+		features.pbr_parallax_height_scale = tsettings.pbr_parallax_height_scale;
 		return shdsrc->getShader("nodes_shader", overlay_material, drawtype, features);
 	};
 
@@ -391,7 +456,9 @@ void NodeVisuals::updateTextures(ContentFeatures &f, ITextureSource *tsrc,
 
 	// Tiles (fill in f->tiles[])
 	bool any_polygon_offset = false;
-	TileAttribContext tac{tsrc, texture_pool, color, tsettings};
+	TileAttribContext tac{tsrc, texture_pool, color, tsettings,
+			shdsrc->supportsFragmentShaderDerivatives(),
+			shdsrc->supportsParallaxOcclusionMapping()};
 
 	for (u16 j = 0; j < 6; j++) {
 		tiles[j].world_aligned = isWorldAligned(tdef[j].align_style,
@@ -426,9 +493,15 @@ void NodeVisuals::updateTextures(ContentFeatures &f, ITextureSource *tsrc,
 			special_material = TILE_MATERIAL_WAVING_LEAVES;
 	}
 
-	GetShaderCallback special_shader = [&] (bool array_texture) {
+	GetShaderCallback special_shader = [&] (bool array_texture, bool normal_map,
+			bool specular_map, bool parallax) {
 		ShaderFeatures features;
 		features.array_texture = array_texture;
+		features.pbr_normal_map = normal_map;
+		features.pbr_specular_map = specular_map;
+		features.pbr_parallax = parallax;
+		features.pbr_parallax_samples = tsettings.pbr_parallax_samples;
+		features.pbr_parallax_height_scale = tsettings.pbr_parallax_height_scale;
 		return shdsrc->getShader("nodes_shader", special_material, drawtype, features);
 	};
 

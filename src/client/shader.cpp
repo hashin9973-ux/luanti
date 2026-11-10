@@ -20,6 +20,8 @@
 #include "log.h"
 #include "client/tile.h"
 
+#include <algorithm>
+
 #include <mt_opengl.h>
 
 /*
@@ -407,6 +409,28 @@ public:
 		return m_fully_programmable;
 	}
 
+	bool supportsFragmentShaderDerivatives() const override
+	{
+		auto *driver = RenderingEngine::get_video_driver();
+		if (driver->getDriverType() == video::EDT_NULL)
+			return false;
+		if (driver->getDriverType() == video::EDT_OGLES2)
+			return m_have_glsl3;
+		// Fragment derivatives are used only with an active programmable
+		// shader pipeline. Desktop GLSL 1.20 and newer provide them.
+		return m_fully_programmable;
+	}
+
+	bool supportsParallaxOcclusionMapping() const override
+	{
+		auto *driver = RenderingEngine::get_video_driver();
+		if (!supportsFragmentShaderDerivatives())
+			return false;
+		// Explicit textureGrad sampling requires GLSL 1.30+ (desktop GL3 uses
+		// GLSL 1.50) or GLSL ES 3.00. Keep POM off on older GLSL backends.
+		return driver->getDriverType() == video::EDT_OPENGL3 || m_have_glsl3;
+	}
+
 private:
 
 	// The id of the thread that is allowed to use irrlicht directly
@@ -789,7 +813,21 @@ void ShaderSource::generateShader(ShaderInfo &shaderinfo)
 
 	/// Unique name of this shader, for debug/logging
 	std::string log_name = name;
+	// Keep a compact feature summary ahead of tuning constants so important
+	// shader variants remain identifiable even when the debug name is clipped.
+	auto append_feature = [&] (const char *constant, const char *label) {
+		if (input_const.find(constant) != input_const.end())
+			log_name.append(" ").append(label);
+	};
+	append_feature("USE_PBR_NORMAL_MAP", "PBR_NORMAL");
+	append_feature("USE_PBR_SPECULAR_MAP", "PBR_SPECULAR");
+	append_feature("USE_PBR_POM", "PBR_POM");
+
 	for (auto &it : input_const) {
+		if (it.first == "USE_PBR_NORMAL_MAP" ||
+				it.first == "USE_PBR_SPECULAR_MAP" ||
+				it.first == "USE_PBR_POM")
+			continue;
 		if (log_name.size() > 60) { // it shouldn't be too long
 			log_name.append("...");
 			break;
@@ -909,6 +947,16 @@ void ShaderFeatures::setConstants(ShaderConstants &consts) const
 			consts["USE_SKINNING"] = 1;
 			consts["MAX_JOINTS"] = (int)max_joints;
 		}
+	}
+	if (pbr_normal_map)
+		consts["USE_PBR_NORMAL_MAP"] = 1;
+	if (pbr_specular_map)
+		consts["USE_PBR_SPECULAR_MAP"] = 1;
+	if (pbr_parallax && pbr_normal_map) {
+		consts["USE_PBR_POM"] = 1;
+		consts["PBR_PARALLAX_SAMPLES"] = std::clamp(pbr_parallax_samples, 8, 64);
+		consts["PBR_PARALLAX_HEIGHT_SCALE"] =
+			std::clamp(pbr_parallax_height_scale, 0.0f, 0.1f);
 	}
 }
 

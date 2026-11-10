@@ -268,6 +268,10 @@ void TextureSettings::readSettings()
 	connected_glass                = g_settings->getBool("connected_glass");
 	translucent_liquids            = g_settings->getBool("translucent_liquids");
 	enable_minimap                 = g_settings->getBool("enable_minimap");
+	enable_pbr                     = g_settings->getBool("enable_pbr");
+	enable_pbr_parallax             = enable_pbr && g_settings->getBool("enable_pbr_parallax");
+	pbr_parallax_samples             = rangelim(g_settings->getS32("pbr_parallax_samples"), 8, 64);
+	pbr_parallax_height_scale        = rangelim(g_settings->getFloat("pbr_parallax_height_scale"), 0.0f, 0.1f);
 	node_texture_size              = rangelim(g_settings->getU16("texture_min_size"),
 		TEXTURE_FILTER_MIN_SIZE, 16384);
 	std::string leaves_style_str   = g_settings->get("leaves_style");

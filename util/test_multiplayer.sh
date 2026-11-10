@@ -17,7 +17,19 @@ waitfor () {
 		((n-=1))
 	done
 	echo "Waiting for ${1##*/} timed out"
-	pkill -P $$
+	pkill -P "$BASHPID"
+	exit 1
+}
+
+waitfor_log () {
+	n=30
+	while [ $n -gt 0 ]; do
+		grep -Fq "$1" "$testspath/log.txt" 2>/dev/null && return 0
+		sleep 0.5
+		((n-=1))
+	done
+	echo "Waiting for server readiness log timed out"
+	pkill -P "$BASHPID"
 	exit 1
 }
 
@@ -41,12 +53,13 @@ ln -s "$dir/helper_mod" "$worldpath/worldmods/"
 echo "Starting server"
 "$executable" --debugger --server --config "$conf_server" --world "$worldpath" --gameid $gameid 2>&1 \
 	| sed -u 's/^/(server) /' | tee -a "$testspath/log.txt" &
-waitfor "$worldpath/startup"
+waitfor_log "Server for gameid=\"$gameid\" listening on"
 
 echo "Starting client"
 export ALSOFT_DRIVERS=null
 "$executable" --debugger --config "$conf_client1" --go --address 127.0.0.1 2>&1 \
 	| sed -u 's/^/(client) /' | tee -a "$testspath/log.txt" &
+waitfor "$worldpath/startup"
 waitfor "$worldpath/done"
 
 echo "Waiting for client and server to exit"

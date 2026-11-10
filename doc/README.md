@@ -26,6 +26,7 @@ Here is a list with descriptions of relevant files:
 
 - [texture_packs.md](texture_packs.md): Layout and description of Luanti's
     texture packs structure and configuration.
+- [pbr.md](pbr.md): Engine-side LabPBR material maps and parallax occlusion mapping.
 - [client_lua_api.md](client_lua_api.md): Client-Provided Client-Side Modding
     (CPCSM) API reference.
 
