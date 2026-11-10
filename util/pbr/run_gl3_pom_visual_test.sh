@@ -13,14 +13,40 @@ command -v import >/dev/null || { echo "ImageMagick import is required." >&2; ex
 command -v compare >/dev/null || { echo "ImageMagick compare is required." >&2; exit 1; }
 command -v identify >/dev/null || { echo "ImageMagick identify is required." >&2; exit 1; }
 
+if command -v magick >/dev/null 2>&1; then
+  image_tool=(magick)
+elif command -v convert >/dev/null 2>&1; then
+  image_tool=(convert)
+else
+  echo "ImageMagick magick/convert is required to create a deterministic POM height map." >&2
+  exit 1
+fi
+
 for suffix in .png _n.png _s.png; do
   unzip -p "$archive" "$asset_root/stone$suffix" > "$asset_dir/stone$suffix"
   test -s "$asset_dir/stone$suffix"
 done
 
 cp "$asset_dir/stone.png" "$texture_dir/default_stone.png"
-cp "$asset_dir/stone_n.png" "$texture_dir/default_stone_n.png"
 cp "$asset_dir/stone_s.png" "$texture_dir/default_stone_s.png"
+
+# Keep the visual comparison independent of the supplied stone map's height
+# contrast. Build a deterministic non-flat LabPBR normal/height map for this
+# test; the shader matrix above still exercises the archive's real maps.
+base_dimensions="$(identify -format '%wx%h' "$asset_dir/stone.png")"
+"${image_tool[@]}" -size "$base_dimensions" pattern:checkerboard -colorspace gray \
+  "$asset_dir/pom-height-alpha.png"
+"${image_tool[@]}" -size "$base_dimensions" xc:'#8080ff' \
+  "$asset_dir/pom-height-alpha.png" -compose CopyOpacity -composite \
+  "$asset_dir/pom-test-normal.png"
+height_colors="$(identify -format '%k' "$asset_dir/pom-test-normal.png")"
+height_channels="$(identify -format '%[channels]' "$asset_dir/pom-test-normal.png")"
+if (( height_colors < 2 )) || [[ "$height_channels" != *a* ]]; then
+  echo "Synthetic POM normal/height map is not a varied RGBA image." >&2
+  exit 1
+fi
+echo "POM_TEST_HEIGHT_MAP dimensions=$base_dimensions colors=$height_colors channels=$height_channels"
+cp "$asset_dir/pom-test-normal.png" "$texture_dir/default_stone_n.png"
 
 capture_scene() {
   local parallax="$1"

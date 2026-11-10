@@ -109,13 +109,15 @@ The Linux CI workflow includes a GL3 singleplayer smoke test that extracts a
 dimension-matched stone base/normal/specular set from the repository's supplied
 archive into the temporary CI checkout, enables PBR and POM in the client
 configuration, and starts the existing Devtest game. This exercises the real
-engine material path and shader startup.
+engine material path and shader startup, including the archive's normal-map
+variants and missing-map fallback.
 
-A separate POM visual-test script now builds a deterministic Devtest stone room,
-captures matching POM-disabled and POM-enabled OpenGL frames, and compares the
-central wall pixels. The test has been added to CI, but its current branch-head
-run has not yet been reported by GitHub Actions; therefore visual POM
-verification remains pending.
+A separate POM visual-test script builds a deterministic Devtest stone room,
+uses a generated non-flat RGBA LabPBR normal/height map so the visual assertion
+does not depend on the supplied stone texture's height contrast, captures
+matching POM-disabled and POM-enabled OpenGL frames, and compares the central
+wall pixels. A measurable pixel difference is required; shader compilation by
+itself does not count as visual verification.
 
 The PBR asset-audit workflow inventories source image/map paths, checks
 manifest targets and sidecar availability, and analyzes packed channel data.
